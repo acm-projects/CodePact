@@ -237,6 +237,9 @@ Other Resources:
 - [Git Tutorial](https://www.youtube.com/watch?v=USjZcfj8yxE)  
 - [Figma](https://www.figma.com/files/project/81846282/Team-project?fuid=1155168864304822849)                                                                                              
 - [How to be Successful in Projects](https://docs.google.com/document/d/18Zi3DrKG5e6g5Bojr8iqxIu6VIGl86YBSFlsnJnlM88/edit)
+- [How to Find and Use Resources Workshop](https://docs.google.com/presentation/d/1qC-lcSdHgElZez-JydHI4oYIP2Lrm51GbZgfwoG99eo/edit?usp=sharing)
+- [Participant GitHub Workshop](https://docs.google.com/presentation/d/1vljgcxbcnnDKvOth3wUIBw0IQgBunYhhYHCr7ZbnIg8/edit?usp=sharing)
+
 
 ## GitHub Cheat Sheet ⚡️
 

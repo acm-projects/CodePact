@@ -150,7 +150,7 @@
   + [3 minutes Branching & Pull-Requests in Git/GitHub](https://www.youtube.com/watch?v=jRLGobWwA3Y)
 
     
-  + GitHub Student Developer Pack (https://education.github.com/pack)🏆
+  + [GitHub Student Developer Pack](https://education.github.com/pack) 🏆
 
   + [Basic MERN Stack Project](https://www.youtube.com/watch?v=F9gB5b4jgOI&t=7434s)
     + Frontend: Watch from 0:00 to 6:10 and 1:46:15 to 3:11:50

@@ -130,7 +130,7 @@
 
 ## Tech Stack 💻
 
-<strong> IDE: </strong> VSCode                                                                                                                    
+<strong> IDE: </strong> VSCode         
 <strong> Wireframe: </strong> Figma
 
 <strong> Tech Stack: MERN </strong> 
@@ -145,7 +145,14 @@
   + [What is a frontend?](https://youtu.be/WG5ikvJ2TKA?si=mBepopDcfIZK37jk)
   + [What is a backend?](https://youtu.be/XBu54nfzxAQ?si=kuioRqmCAxXhQocA)
   + [REST APIs](https://youtu.be/LooL6_chvN4?si=amF2wvhjfx1-UiaM)
+  + [2-minutes Git Video](https://www.youtube.com/watch?v=2ReR1YJrNOM)
   + [Basic Git & GitHub in VSCode Tutorial](https://youtu.be/z5jZ9lrSpqk?si=51sKMz2JHPklqfnV)
+  + [3 minutes Branching & Pull-Requests in Git/GitHub](https://www.youtube.com/watch?v=jRLGobWwA3Y)
+
+  + [Basic MERN Stack Project](https://www.youtube.com/watch?v=F9gB5b4jgOI&t=7434s)
+    + Frontend: Watch from 0:00 to 6:10 and 1:46:15 to 3:11:50
+    + Backend: Watch from 0:00 to 1:46:15 (I recommend following along entire video to grasp a better understanding of integration with backend and frontend)
+ 
 
 <strong> Frontend: </strong>
   + [Designing a Web App](https://youtu.be/W8smyf1eHFk?si=QlgPgMOSFb21KPr7) 

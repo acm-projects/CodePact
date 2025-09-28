@@ -2,6 +2,7 @@
   "dependencies": {
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "mongodb": "^6.20.0",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1"
   },
@@ -12,11 +13,23 @@
     "typescript": "^5.9.2"
   },
   "scripts": {
-  "dev": "ts-node-dev --respawn src/index.ts",
-  "build": "tsc",
-  "start": "node dist/index.js"
-}
-
-
-
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "name": "backendwork",
+  "version": "1.0.0",
+  "description": "",
+  "main": "file.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acm-projects/CodePact.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/acm-projects/CodePact/issues"
+  },
+  "homepage": "https://github.com/acm-projects/CodePact#readme"
 }

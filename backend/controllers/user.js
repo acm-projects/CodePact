@@ -1,38 +1,40 @@
-// controllers/user.js
+
 const User = require('../models/user');
 
-async function createUser(req, res) {
-  try {
-    const { fullname, email, password } = req.body;
 
-    if (!fullname || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'fullname, email, and password are required',
-      });
-    }
+exports.createUser = async (req, res) => {
+  const { fullname, email, password } = req.body;
+  const isNewUser = await User.isThisEmailInUse(email);
+  if (!isNewUser)
+    return res.json({
+      success: false,
+      message: 'This email is already in use, try sign-in',
+    });
+  const user = await User({
+    fullname,
+    email,
+    password,
+  });
+  await user.save();
+  res.json({ success: true, user });
+};
 
-    const isNewUser = await User.isThisEmailInUse(email);
-    if (!isNewUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'This email is already in use. Try another email.',
-      });
-    }
+exports.userSignIn = async (req, res) => {
+  const { email, password } = req.body;
 
-    const user = new User({
-      fullname: fullname.trim(),
-      email: email.toLowerCase().trim(),
-      password, // hash later with bcrypt
+  const user = await User.findOne({ email });
+
+  if (!user)
+    return res.json({
+      success: false,
+      message: 'user not found, with the given email!',
     });
 
-    await user.save();
-    const { password: _, ...safeUser } = user.toObject();
-    return res.status(201).json({ success: true, user: safeUser });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error' });
-  }
-}
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch)
+    return res.json({
+      success: false,
+      message: 'email / password does not match!',
+    });
 
-module.exports = { createUser };
+}

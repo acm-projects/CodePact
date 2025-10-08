@@ -23,13 +23,16 @@ const userSchema = new mongoose.Schema({
 
 // Hash Function for Password
 userSchema.pre('save', function(next){
-    if(this.isModified('password')){
-        bcrypt.hash(this.password, 8, (err, has) => {
-            if(err) return next(err);
-            
-            this.password = has;
-            next();
-        })
+    if (this.isModified('password')) {
+        bcrypt.hash(this.password, 8, (err, hash) => {
+            if (err) return next(err);
+
+            this.password = hash;
+            return next();
+        });
+    } else {
+        // password not modified, continue
+        return next();
     }
 })
 
@@ -41,6 +44,7 @@ userSchema.methods.comparePassword = async function (password) {
         return result;
     } catch (error) {
         console.log('Error while comparing password!', error.message)
+        return false;
     }
 }
 

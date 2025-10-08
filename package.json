@@ -1,0 +1,28 @@
+{
+  "name": "codepact",
+  "version": "1.0.0",
+  "description": "<p align=\"center\">   <img src=\"https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzhpMGVxdm85bjVwZHp1ZDRvNDNwanBsamlybHB1ejkwY3JrOTB2YSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/BmmfETghGOPrW/giphy.gif\" alt=\"animated\" /> </p>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acm-projects/CodePact.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/acm-projects/CodePact/issues"
+  },
+  "homepage": "https://github.com/acm-projects/CodePact#readme",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "mongodb": "^6.20.0",
+    "mongoose": "^8.19.1"
+  }
+}

@@ -6,42 +6,17 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
-app.use(cors());
-app.use(express.json());
-
-// Routes 
+// Routes
 const leetcodeRoutes = require('./routes/leetcode');
-app.use('/api', require('./routes/leetcode'));
-
-// Starts Server
-app.listen(PORT, () => {
-    console.log('Server listening on http:localhost:$[PORT}');
-})
-
-
-// Routes for Auth
-require('./models/db');
 const userRouter = require('./routes/user');
-const User = require('./models/user');
 
+// Database
+require('./models/db');
 
-
-
-// Auth 
+// Mount middleware and routes
+app.use('/api', leetcodeRoutes);
 app.use(express.json());
 app.use(userRouter);
-
-const test = async (email, password) => {
-  const user = await User.findOne({ email });
-  if (!user) {
-    console.log('No user found for', email);
-    return;
-  }
-  const result = await user.comparePassword(password);
-  console.log(result);
-};
-
- // test('niraj@email.com', 'niraj12');
 
 app.get('/test', (req, res) => {
   res.send('Hello world');
@@ -49,6 +24,11 @@ app.get('/test', (req, res) => {
 
 app.get('/', (req, res) => {
   res.json({ success: true, message: 'Welcome!' });
+});
+
+// Starts Server
+app.listen(PORT, () => {
+  console.log(`Server listening on http://localhost:${PORT}`);
 });
 
 app.listen(8000, () => {

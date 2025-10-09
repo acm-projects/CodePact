@@ -1,0 +1,30 @@
+{
+  "name": "codepact",
+  "version": "1.0.0",
+  "description": "",
+  "main": " app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acm-projects/CodePact.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/acm-projects/CodePact/issues"
+  },
+  "homepage": "https://github.com/acm-projects/CodePact#readme",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "mongoose": "^8.18.3",
+    "nodemon": "^3.1.10"
+  }
+}

@@ -1,36 +1,34 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+// app.js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+
+// Database init (ensure this file connects on require)
+require("./models/db");
+
+const leetcodeRoutes = require("./routes/leetcode");
+const userRouter = require("./routes/user");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Middleware
-// Routes
-const leetcodeRoutes = require('./routes/leetcode');
-const userRouter = require('./routes/user');
-
-// Database
-require('./models/db');
-
-// Mount middleware and routes
-app.use('/api', leetcodeRoutes);
+// ----- Middleware (order matters) -----
+app.use(cors());
 app.use(express.json());
-app.use(userRouter);
 
-app.get('/test', (req, res) => {
-  res.send('Hello world');
+// ----- Routes -----
+app.use("/api", leetcodeRoutes); // -> /api/leetcode/:username/stats
+app.use("/api", userRouter);
+
+app.get("/test", (_req, res) => {
+  res.send("Hello world");
 });
 
-app.get('/', (req, res) => {
-  res.json({ success: true, message: 'Welcome!' });
+app.get("/", (_req, res) => {
+  res.json({ success: true, message: "Welcome!" });
 });
 
-// Starts Server
+// ----- Start server (only once) -----
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
-});
-
-app.listen(8000, () => {
-  console.log('port is listening');
 });

@@ -31,7 +31,7 @@ router.get('/fetch', async (req, res) => {
   try {
     console.log('Fetching from O*NET API...');
     const response = await axios.get(
-      'https://services.onetcenter.org/ws/online/occupations/',
+      'https://services.onetcenter.org/ws/online/occupations/?format=json',
       {
         auth: { username: ONET_USER, password: ONET_PASS },
         params: { start: 0, end: 200 } // first 200 occupations

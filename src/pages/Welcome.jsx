@@ -27,7 +27,10 @@ export default function Welcome() {
 
           {/* CTA Buttons */}
           <div className="flex justify-center gap-4 mb-12">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 shadow-lg">
+            <button
+              onClick={() => navigate("/create-account")}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors duration-200 shadow-lg"
+            >
               Create Account
             </button>
             <button
@@ -45,8 +48,8 @@ export default function Welcome() {
         {/* Features Section with Colored Background */}
         <div className="bg-[#04021B] rounded-2xl p-12 -mx-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-white-400">Features Built for Success</h2>
-            <p className="text-lg text-white-400">
+            <h2 className="text-3xl font-bold mb-4 text-gray-400">Features Built for Success</h2>
+            <p className="text-lg text-gray-400">
               Everything your squad needs to land the job.
             </p>
           </div>

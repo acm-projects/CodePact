@@ -23,10 +23,7 @@ const TECH_KEYWORDS = [
   'security'
 ];
 
-/**
- * GET /api/onet/fetch
- * Fetch O*NET occupations and store IT-related ones
- */
+//Fetch O*NET occupations and store IT-related ones
 router.get('/fetch', async (req, res) => {
   try {
     console.log('Fetching from O*NET API...');

@@ -6,13 +6,13 @@ const mongoURI = process.env.MONGO_URI;
 
 const express = require('express');
 const cors = require('cors');
-const onetRoutes = require('./routes/onet');
 const forumRoutes = require('./routes/forum');
+const adzunaRoutes = require('./routes/adzuna');
 const app = express();
 
 
 app.use('/api/forum', forumRoutes);
-app.use('/api/onet', onetRoutes);
+app.use('/api/adzuna', adzunaRoutes);
 
 app.use(cors());
 app.use(express.json());

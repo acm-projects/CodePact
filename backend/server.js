@@ -9,10 +9,15 @@ const cors = require('cors');
 const forumRoutes = require('./routes/forum');
 const adzunaRoutes = require('./routes/adzuna');
 const app = express();
+const notificationRoutes = require('./routes/notificationsRoutes');
+const reminderRoutes = require('./routes/remindersRoutes');
 
 
 app.use('/api/forum', forumRoutes);
 app.use('/api/adzuna', adzunaRoutes);
+
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 app.use(cors());
 app.use(express.json());

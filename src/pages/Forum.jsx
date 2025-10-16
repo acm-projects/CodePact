@@ -1,23 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
+import LoggedInNavbar from "../components/nav/LoggedInNavBar";
 
 export default function PublicForum() {
   const [activeTab, setActiveTab] = useState("Public Forum");
   const navigate = useNavigate();
 
   const tabs = [
-    "Home", "Squads", "Public Forum", "Messages", "AI Interviewer", "Reminders & Notifications",
+    "Home",
+    "Squads",
+    "Public Forum",
+    "Messages",
+    "AI Interviewer",
+    "Reminders & Notifications",
   ];
 
   const discussions = [
     {
       category: "Interviewing",
-      title: "How to counter-offer a lowball compensation package for Staff SWE?",
+      title:
+        "How to counter-offer a lowball compensation package for Staff SWE?",
       replies: "25",
       views: "1.2k",
       lastAction: "2 hours ago by Janedoe",
-      icon: "💼"
+      icon: "💼",
     },
     {
       category: "Technical",
@@ -25,7 +32,7 @@ export default function PublicForum() {
       replies: "12",
       views: "4.0k",
       lastAction: "60 minutes ago by CodeMaster",
-      icon: "💻"
+      icon: "💻",
     },
     {
       category: "Success",
@@ -33,8 +40,8 @@ export default function PublicForum() {
       replies: "48",
       views: "2.8k",
       lastAction: "3 hours ago by John Smith",
-      icon: "🎯"
-    }
+      icon: "🎯",
+    },
   ];
 
   const handleTabClick = (tab) => {
@@ -49,75 +56,33 @@ export default function PublicForum() {
   return (
     <div className="min-h-screen bg-[#0f0f23] text-white">
       {/* Custom Header */}
-      <header className="bg-[#0f0f23] border-b border-gray-800 py-4 px-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Top Row - Logo and User Info */}
-          <div className="flex justify-between items-center mb-6">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="font-bold text-white text-sm">CP</span>
-              </div>
-              <span className="font-bold text-xl text-white">CodePact</span>
-            </div>
-
-            {/* User Info and Squad Creation */}
-            <div className="flex flex-col items-end space-y-2">
-              {/* User Name and Profile Picture */}
-              <div className="flex items-center space-x-3">
-                <span className="text-white font-medium">Name</span>
-                <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center border-2 border-blue-500">
-                  <span className="text-white font-bold text-sm">👤</span>
-                </div>
-              </div>
-              
-              {/* Squad Creation Button */}
-              <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-1 rounded-lg transition-colors duration-200 text-sm">
-                Squad Creation
-              </button>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex items-center border-b border-gray-700 pb-2">
-            <div className="flex space-x-8">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => handleTabClick(tab)}
-                  className={`font-medium transition-colors duration-200 pb-2 border-b-2 ${
-                    activeTab === tab
-                      ? "text-blue-400 border-blue-400"
-                      : "text-gray-400 hover:text-white border-transparent"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </header>
+      <LoggedInNavbar />
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
         {/* Header Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Public Forum</h1>
-          <p className="text-gray-400">Join discussions and share knowledge with the community</p>
+          <p className="text-gray-400">
+            Join discussions and share knowledge with the community
+          </p>
         </div>
 
         <div className="grid grid-cols-4 gap-8">
           {/* Left Sidebar - Forum Categories */}
           <div className="col-span-1">
             <div className="bg-[#1a1a2e] border border-gray-800 rounded-2xl p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4 text-white">Forum Categories</h2>
+              <h2 className="text-xl font-bold mb-4 text-white">
+                Forum Categories
+              </h2>
               <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 mb-6">
                 Start New Thread
               </button>
-              
+
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-300 mb-3">Sections</h3>
+                <h3 className="text-lg font-semibold text-gray-300 mb-3">
+                  Sections
+                </h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-[#0f0f23] rounded-lg hover:bg-blue-500/10 transition-colors duration-200">
                     <span className="text-white">Technical</span>
@@ -139,11 +104,13 @@ export default function PublicForum() {
           {/* Right Content - Latest Discussions */}
           <div className="col-span-3">
             <div className="bg-[#1a1a2e] border border-gray-800 rounded-2xl p-6">
-              <h2 className="text-2xl font-bold mb-6 text-white">Latest Discussions</h2>
-              
+              <h2 className="text-2xl font-bold mb-6 text-white">
+                Latest Discussions
+              </h2>
+
               <div className="space-y-4">
                 {discussions.map((discussion, index) => (
-                  <div 
+                  <div
                     key={index}
                     className="bg-[#0f0f23] border border-gray-700 rounded-xl p-6 hover:border-blue-500/50 transition-colors duration-200"
                   >

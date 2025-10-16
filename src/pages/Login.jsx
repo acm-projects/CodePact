@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/NavBar";
+import Navbar from "../components/nav/NavBar";
 import Footer from "../components/Footer";
 
 export default function Login() {
@@ -27,7 +27,9 @@ export default function Login() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold mb-2">CodePact</h1>
-            <h2 className="text-lg text-gray-300 mb-1">Login to Your Account</h2>
+            <h2 className="text-lg text-gray-300 mb-1">
+              Login to Your Account
+            </h2>
             <p className="text-gray-400 text-sm">
               Continue your collaborative tech job hunt.
             </p>
@@ -76,7 +78,10 @@ export default function Login() {
                 />
                 <span className="ml-2 text-gray-300">Remember me</span>
               </label>
-              <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors">
+              <a
+                href="#"
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+              >
                 Forgot password?
               </a>
             </div>

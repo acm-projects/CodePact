@@ -1,0 +1,337 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>Group List</title>
+ <style>
+ .button{
+   background-color: red;
+   border: none;
+   color: white;
+   padding: 15px 32px;
+   text-align: center;
+   text-decoration: none;
+   display: inline-block;
+   font-size: 16px;
+   cursor: pointer;
+
+
+ }
+ </style>
+</head>
+<body>
+ <h2>Available Groups</h2>
+ <div id="groupsContainer"></div>
+
+
+ <script>
+   async function loadGroups() {
+     try {
+       console.log("Smile");
+       const res = await fetch("http://localhost:3000/getGroupList");
+       const groups = await res.json();
+       console.log("Hello World");
+       console.log(groups);
+       const container = document.getElementById("groupsContainer");
+       container.innerHTML = "";
+      
+       groups.forEach(group => {
+         const btn = document.createElement("button");
+         btn.innerText = group.name;
+         btn.onclick = () => {
+           fetch(`http://localhost:3000/changeUserGroups?name=${encodeURIComponent("Tharun")}&groupName=${encodeURIComponent(group.name)}`);
+           
+           loadGroups2();
+         }
+         container.appendChild(btn);
+         container.appendChild(document.createElement("br"));
+       });
+     } catch (err) {
+       console.error("Error fetching groups:", err);
+     }
+   }
+
+
+   // load groups when the page loads
+ loadGroups();
+ </script>
+
+
+
+
+ <h2>User groups **Working Deletions**</h2>
+ <div id="groupsContainer2"></div>
+ <script>
+   async function loadGroups2() {
+     try {
+       const res = await fetch(
+     `http://localhost:3000/userGroupList?name=${encodeURIComponent("Tharun")}`
+   );
+       console.log("Hellp World");
+       const userDoc = await res.json();
+       console.log(userDoc);
+
+
+       const container = document.getElementById("groupsContainer2");
+       container.innerHTML = "";
+
+
+       (userDoc.userGroups || []).forEach(group => {
+         const btn = document.createElement("button");
+         btn.innerText = group;
+         btn.onclick = () =>  {
+           fetch(`http://localhost:3000/deleteEntry?groupName=${encodeURIComponent(btn.innerText)}`);
+           loadGroups2();
+         }
+         container.appendChild(btn);
+         container.appendChild(document.createElement("br"));
+       });
+     } catch (err) {
+       console.error("Error fetching groups:", err);
+     }
+   }
+
+
+   // load groups when the page loads
+ loadGroups2();
+ </script>
+
+
+
+
+ <h2>Search for your group</h2>
+ <input type="text" id="fname3" name="fname3">
+ <button onclick="findGroup()">Search for a new Group</button>
+ <div id="groupsContainer3"></div>
+ <script>
+   async function findGroup()
+   {
+     let inputField = document.getElementById("fname3");
+     let value = inputField.value;
+     const res = await fetch(`http://localhost:3000/searchForEntry?search=${encodeURIComponent(value)}`);
+     try {
+       const groups = await res.json();
+       console.log(groups);
+       const container = document.getElementById("groupsContainer3");
+       container.innerHTML = "";
+      
+       groups.forEach(group => {
+         const btn = document.createElement("button");
+         btn.innerText = group.name;
+         container.appendChild(btn);
+         container.appendChild(document.createElement("br"));
+       });
+     } catch (err) {
+       console.error("Error fetching groups:", err);
+     }
+   }
+
+
+ </script>
+
+
+ <h2>Create your group</h2>
+ <input type="text" id="fname2" name="fname2">
+ <button onclick="createdGroup()">Create new Group</button>
+ <script>
+   async function createdGroup()
+   {
+     let inputField = document.getElementById("fname2");
+     let value = inputField.value;
+     fetch(`http://localhost:3000/changeUserGroups?name=${encodeURIComponent("Tharun")}&groupName=${encodeURIComponent(value)}`);
+     
+     loadGroups2();
+   }
+ </script>
+
+
+ <h2>AI Chat Bot Test</h2>
+ <input type="text" id="fname" name="fname">
+ <button onclick="getValue()">Get Value</button>
+ <p id="TextPart">TextBot Output</p>
+ <script>
+   async function getValue()
+   {
+   
+     let inputField = document.getElementById("fname");
+     let value = inputField.value;
+
+
+     chatBotRes = await fetch(`http://localhost:3000/chat?text=${encodeURIComponent(value)}`);
+     const data = await chatBotRes.json();
+     document.getElementById("TextPart").textContent = data.reply;
+   }
+ </script>
+
+ <h2>User Admin Groups</h2>
+ <div id="groupsContainer4"></div>
+ <script>
+  async function loadGroups4() {
+    try {
+      const res = await fetch(
+    `http://localhost:3000/getAdminGroupList?name=${encodeURIComponent("Tharun")}`
+  );
+      console.log("Hello World");
+      const userDoc = await res.json();
+      console.log(userDoc);
+
+
+      const container = document.getElementById("groupsContainer4");
+      container.innerHTML = "";
+
+
+      (userDoc || []).forEach(group => {
+        const btn = document.createElement("button");
+        btn.innerText = group;
+        btn.onclick = () =>  {
+          nameListRetriver(btn.innerText);
+
+        }
+        container.appendChild(btn);
+        container.appendChild(document.createElement("br"));
+      });
+    } catch (err) {
+      console.error("Error fetching groups:", err);
+    }
+  }
+
+
+  // load groups when the page loads
+loadGroups4();
+</script>
+
+<h2>Name List Test</h2>
+<div id = "names"></div>
+<script>
+  async function nameListRetriver(groupName) {
+    try {
+
+      const res = await fetch(`http://localhost:3000/getMembers?groupName=${encodeURIComponent(groupName)}`);
+      const names = await res.json();
+      console.log(names);
+
+      const container = document.getElementById("names");
+      container.innerHTML = "";
+
+      names.forEach(name => {
+        const nameElement = document.createElement("button");
+        nameElement.innerText = name;
+        nameElement.onclick = () => {
+           fetch(`http://localhost:3000/deleteUserFromGroup?groupName=${encodeURIComponent(groupName)}&name=${encodeURIComponent(name)}`);
+           nameListRetriver(groupName);
+        }
+        container.appendChild(nameElement);
+      });
+    } catch (err) {
+      console.error("Error fetching name list:", err);
+    }
+  }
+</script>
+
+<h2>User Search Mechanic</h2>
+<div id="userSearchResults"></div>
+<input type="text" id="searchName" name="searchName">
+<button onclick="findName()">Search for a new Group</button>
+ <div id="foundUsers"></div>
+ <script>
+   async function findName()
+   {
+     let inputField = document.getElementById("searchName");
+     let value = inputField.value;
+     const res = await fetch(`http://localhost:3000/searchForUser?search=${encodeURIComponent(value)}`);
+     try {
+       const groups = await res.json();
+       console.log(groups);
+       const container = document.getElementById("foundUsers");
+       container.innerHTML = "";
+      
+       groups.forEach(group => {
+         const btn = document.createElement("button");
+         btn.innerText = group.name;
+         container.appendChild(btn);
+         container.appendChild(document.createElement("br"));
+       });
+     } catch (err) {
+       console.error("Error fetching groups:", err);
+     }
+   }
+
+
+ </script>
+
+ <h2>Invite Test</h2>
+ <div id="sendInvite">
+  <button onclick="sendInvite()">>Press to Test Invite Feature</button>
+ </div>
+ <script> 
+ async function sendInvite() {
+  try {
+    const res = await fetch(
+      `http://localhost:3000/makeInvite?userName=${encodeURIComponent("Tharun")}`
+    );
+    
+    await loadInvites();
+
+} catch(err){
+  console.error("Error sending invite:", err);
+}}
+</script>
+
+
+<h2>Invite List</h2>
+<div id="getInvite"></div>
+<script>
+ async function loadInvites() {
+     try {
+       const res = await fetch(
+     `http://localhost:3000/getInvites?userName=${encodeURIComponent("Tharun")}`
+   );
+       console.log("Hellp World");
+       const userDoc = await res.json();
+
+
+       const container = document.getElementById("getInvite");
+       container.innerHTML = "";
+
+
+       (userDoc || []).forEach(group => {
+         const btn = document.createElement("button");
+         btn.innerText = group;
+
+         
+         container.appendChild(btn);
+         container.appendChild(document.createElement("br"));
+       });
+     } catch (err) {
+       console.error("Error fetching groups:", err);
+     }
+   }
+
+
+</script>
+
+//All the AI
+<h2>Interview Sample</h2>
+<div id="userSearchResults"></div>
+<button onclick="enterQuestions()">Enter Questions</button>
+<input type="text" id="createQuestion" name="createQuestion">
+<script>
+  async function enterQuestions()
+  {
+    let inputField = document.getElementById("createQuestion");
+    let value = inputField.value;
+    //Begins to add questions here
+    const res = await fetch(`http://localhost:3000/enterInterviewQuestions?question=${encodeURIComponent(value)}`);
+    try {
+      const groups = await res.json();
+      console.log(groups);
+      
+    } catch (err) {
+      console.error("Error fetching groups:", err);
+    }
+  }
+</script>
+
+</html>

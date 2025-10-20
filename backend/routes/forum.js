@@ -1,52 +1,46 @@
 const express = require('express');
 const router = express.Router();
 const ForumThread = require('../models/ForumThread');
-const Job = require('../models/Job'); // optional, only if you keep Job model
+const Job = require('../models/Job'); 
 
 // DOES NOT IMPLEMENT AUTH - work together to get this done
 
-// Create a thread for a job
+// Create a thread for an Adzuna job
 // POST /api/forum/thread
-// body: { jobCode, companyName, jobId (optional), title, body, authorName, tags? }
+// body: { jobCode, companyName, title, body, authorName, tags? }
 router.post('/thread', async (req, res) => {
-  try {
-    const { jobCode, companyName, jobId, title, body, authorName, tags } = req.body;
-    if (!jobCode || !companyName || !title || !body || !authorName) {
-      return res.status(400).json({ error: 'jobCode, companyName, title, body, and authorName are required' });
-    }
-
-    // Optional: verify jobId or jobCode exists in Job collection
-    if (jobId) {
-      // If you want to verify the job exists:
-      try {
-        const jobExists = await Job.findById(jobId).lean();
-        if (!jobExists) {
-          // if jobId not found, we can still allow thread, but warn
-          console.warn(`jobId ${jobId} not found. Creating thread with jobCode only.`);
-        }
-      } catch (err) {
-        console.warn('Job lookup error (non-fatal):', err.message);
+    try {
+      const { jobCode, companyName, title, body, authorName, tags } = req.body;
+  
+      // jobCode = Adzuna job ID, required to link thread to a real job
+      if (!jobCode || !companyName || !title || !body || !authorName) {
+        return res.status(400).json({ error: 'jobCode, companyName, title, body, and authorName are required' });
       }
+  
+      // Check if a thread for this job already exists (optional)
+      const existingThread = await ForumThread.findOne({ jobCode, title });
+      if (existingThread) {
+        return res.status(409).json({ error: 'Thread for this job and title already exists' });
+      }
+  
+      // Create and save new thread
+      const thread = new ForumThread({
+        jobCode: jobCode.toString(),  // ← Adzuna ID used here
+        companyName,
+        title,
+        body,
+        authorName,
+        tags: Array.isArray(tags) ? tags : (tags ? [tags] : [])
+      });
+  
+      await thread.save();
+      return res.status(201).json({ message: 'Thread created', thread });
+    } catch (err) {
+      console.error('Create thread error', err);
+      return res.status(500).json({ error: err.message || 'Internal server error' });
     }
-
-    const thread = new ForumThread({
-      jobCode: jobCode.toString(),
-      jobId: jobId || null,
-      companyName,
-      title,
-      body,
-      authorName,
-      authorId: null,
-      tags: Array.isArray(tags) ? tags : (tags ? [tags] : [])
-    });
-
-    await thread.save();
-    return res.status(201).json({ message: 'Thread created', thread });
-  } catch (err) {
-    console.error('Create thread error', err);
-    return res.status(500).json({ error: err.message || 'Internal server error' });
-  }
-});
+  });
+  
 
 // Get threads for a specific job code
 // GET /api/forum/job/:jobCode?limit=10&page=1

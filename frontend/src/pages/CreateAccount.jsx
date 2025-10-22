@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
-import Footer from "../components/Footer";
-import Button from "../components/Button";      // Primary Button component
+import NavBar from "../components/NavBar.jsx";
+import Footer from "../components/Footer.jsx";
+import Button from "../components/Button.jsx";      // Primary Button component
 import FormInput from "../components/FormInput.jsx"; // Reusable Input component
 import {
     BACKGROUND_COLOR, ACCENT_GRADIENT, FEATURE_BG, BORDER_COLOR, GridOverlay,
-} from "../utils/constants";
+} from "../utils/constants.jsx";
 
 
 export default function CreateAccount() {

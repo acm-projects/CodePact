@@ -26,8 +26,7 @@ export default function Leaderboard() {
   const handleTabClick = (tab) => {
     setActiveTab(tab);
     if (tab === "Home") navigate("/leaderboard");
-    else if (tab === "Squads")
-      navigate("/squads"); // was /group-chat; align with routes
+    else if (tab === "Squads") navigate("/squads");
     else if (tab === "Public Forum") navigate("/public-forum");
     else if (tab === "Messages") navigate("/messages");
     else if (tab === "AI Interviewer") navigate("/interview");
@@ -42,200 +41,135 @@ export default function Leaderboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0f0f23] text-white">
-      {/* Top Nav */}
+    <div className={`min-h-screen ${BACKGROUND_COLOR} text-white`}>
       <LoggedInNavbar />
+      <GridOverlay />
 
-      {/* Page wrapper */}
-      <div
-        className={`min-h-screen relative ${BACKGROUND_COLOR} text-white font-quicksand`}
-      >
-        {/* Grid overlay */}
-        <GridOverlay />
+      {/* ✅ Gradient Band added here */}
+      <section className="relative">
+        <div
+          className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
+        />
+        <div className="relative max-w-6xl mx-auto px-6 pt-8 pb-2 text-center">
+          <h1 className="text-2xl font-bold mb-2 text-white">
+            Welcome, Nabiha!
+          </h1>
+          <h2 className="text-4xl font-audiowide mb-4">
+            <span>LEADERBOARD & </span>
+            <span
+              className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
+            >
+              PROGRESS
+            </span>
+          </h2>
+          <p className="text-gray-400">
+            Track your squad&rsquo;s performance and your progress
+          </p>
+        </div>
+      </section>
+      {/* ✅ End gradient section */}
 
-        {/* Header */}
-        <header className="relative z-10 bg-transparent py-8 px-0">
-          <div className="max-w-7xl mx-auto px-8">
-            {/* Top Row */}
-            <div className="flex justify-between items-center mb-6 relative">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`w-9 h-9 ${ACCENT_GRADIENT} rounded-lg flex items-center justify-center`}
-                >
-                  <span className="font-bold text-white text-sm">CP</span>
-                </div>
-                <span className="text-xl font-audiowide text-white">
-                  CODEPACT
-                </span>
+      {/* Rest of your code untouched */}
+      <main className="max-w-6xl mx-auto px-6 py-10 relative z-10">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {stats.map((stat, i) => (
+            <div
+              key={i}
+              className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-xl p-6 text-center shadow-lg hover:shadow-cyan-500/10 transition-shadow duration-200`}
+            >
+              <div className={`text-2xl font-bold mb-2 ${stat.color}`}>
+                {stat.value.toLocaleString()}
               </div>
-
-              {/* Profile Icon */}
-              <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center border-2 border-white">
-                <span
-                  className={`font-bold text-sm bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
-                >
-                  👤
-                </span>
-              </div>
-
-              {/* Divider */}
-              <div className="absolute bottom-[-12px] left-0 w-full h-[2px] bg-gray-700 opacity-50" />
+              <div className="text-gray-400 text-sm">{stat.label}</div>
             </div>
+          ))}
+        </div>
 
-            {/* Tabs Row */}
-            <div className="flex justify-between items-center mt-8 mb-6 relative">
-              <div className="flex space-x-6">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => handleTabClick(tab)}
-                    className={`relative font-medium transition-colors duration-200 pb-2 border-b-2 ${
-                      activeTab === tab
-                        ? "text-white border-b-cyan-400"
-                        : "text-gray-400 hover:text-white border-transparent"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                className={`${ACCENT_GRADIENT} text-white font-semibold px-4 py-1 rounded-lg transition-all duration-200 text-sm shadow-md hover:brightness-110`}
-              >
-                Squad Creation
-              </button>
-
-              {/* Divider */}
-              <div className="absolute bottom-[-12px] left-0 w-full h-[2px] bg-gray-700 opacity-70" />
-            </div>
+        {/* Squad Leaderboard */}
+        <div
+          className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-8 mb-8 shadow-2xl shadow-fuchsia-900/40`}
+        >
+          <h3 className="text-2xl font-bold mb-6 text-white">
+            Squad Leaderboard
+          </h3>
+          <div className="space-y-4">
+            <LeaderboardEntry
+              rank={1}
+              name="Algorithm Avengers"
+              points="5,500 pts"
+              color="yellow-400"
+            />
+            <LeaderboardEntry
+              rank={2}
+              name="The Code Crushers"
+              points="4,950 pts"
+              color="gray-400"
+            />
+            <LeaderboardEntry
+              rank={3}
+              name="Your Squad"
+              points="3,900 pts"
+              color="fuchsia-400"
+              highlight
+            />
+            <LeaderboardEntry
+              rank={4}
+              name="Binary Builders"
+              points="3,200 pts"
+              color="gray-400"
+            />
+            <LeaderboardEntry
+              rank={5}
+              name="Debug Dynasty"
+              points="2,800 pts"
+              color="gray-400"
+            />
           </div>
-        </header>
+        </div>
 
-        {/* Main */}
-        <main className="max-w-6xl mx-auto px-6 py-6 relative z-10">
-          {/* Title */}
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold mb-2 text-white">
-              Welcome, Nabiha!
-            </h1>
-            <h2 className="text-4xl font-audiowide mb-4">
-              <span>LEADERBOARD & </span>
-              <span
-                className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
-              >
-                PROGRESS
-              </span>
-            </h2>
-            <p className="text-gray-400">
-              Track your squad&rsquo;s performance and your progress
-            </p>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, i) => (
-              <div
-                key={i}
-                className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-xl p-6 text-center shadow-lg hover:shadow-cyan-500/10 transition-shadow duration-200`}
-              >
-                <div className={`text-2xl font-bold mb-2 ${stat.color}`}>
-                  {stat.value.toLocaleString()}
-                </div>
-                <div className="text-gray-400 text-sm">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Squad Leaderboard */}
+        {/* Progress & Activity */}
+        <div className="grid md:grid-cols-2 gap-8">
           <div
-            className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-8 mb-8 shadow-2xl shadow-fuchsia-900/40`}
+            className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 shadow-lg`}
           >
-            <h3 className="text-2xl font-bold mb-6 text-white">
-              Squad Leaderboard
-            </h3>
-            <div className="space-y-4">
-              <LeaderboardEntry
-                rank={1}
-                name="Algorithm Avengers"
-                points="5,500 pts"
-                color="yellow-400"
-              />
-              <LeaderboardEntry
-                rank={2}
-                name="The Code Crushers"
-                points="4,950 pts"
-                color="gray-400"
-              />
-              <LeaderboardEntry
-                rank={3}
-                name="Your Squad"
-                points="3,900 pts"
-                color="fuchsia-400"
-                highlight
-              />
-              <LeaderboardEntry
-                rank={4}
-                name="Binary Builders"
-                points="3,200 pts"
-                color="gray-400"
-              />
-              <LeaderboardEntry
-                rank={5}
-                name="Debug Dynasty"
-                points="2,800 pts"
-                color="gray-400"
-              />
-            </div>
+            <h4 className="text-xl font-bold mb-4 text-white">
+              Weekly Progress
+            </h4>
+            <ProgressBar
+              label="Problems Solved"
+              value={24}
+              max={30}
+              color="cyan"
+            />
+            <ProgressBar
+              label="Applications Sent"
+              value={8}
+              max={10}
+              color="fuchsia"
+            />
           </div>
-
-          {/* Progress & Activity */}
-          <div className="grid md:grid-cols-2 gap-8">
-            <div
-              className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 shadow-lg`}
-            >
-              <h4 className="text-xl font-bold mb-4 text-white">
-                Weekly Progress
-              </h4>
-              <ProgressBar
-                label="Problems Solved"
-                value={24}
-                max={30}
-                color="cyan"
-              />
-              <ProgressBar
-                label="Applications Sent"
-                value={8}
-                max={10}
-                color="fuchsia"
-              />
-            </div>
-
-            <div
-              className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 shadow-lg`}
-            >
-              <h4 className="text-xl font-bold mb-4 text-white">
-                Recent Activity
-              </h4>
-              <div className="space-y-3 text-sm">
-                <div className="text-cyan-400">• John solved "Two Sum"</div>
-                <div className="text-fuchsia-400">
-                  • Sarah applied to Google
-                </div>
-                <div className="text-lime-400">
-                  • Mike completed mock interview
-                </div>
-                <div className="text-yellow-400">
-                  • Your squad gained 200 points
-                </div>
+          <div
+            className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 shadow-lg`}
+          >
+            <h4 className="text-xl font-bold mb-4 text-white">
+              Recent Activity
+            </h4>
+            <div className="space-y-3 text-sm">
+              <div className="text-cyan-400">• John solved "Two Sum"</div>
+              <div className="text-fuchsia-400">• Sarah applied to Google</div>
+              <div className="text-lime-400">
+                • Mike completed mock interview
+              </div>
+              <div className="text-yellow-400">
+                • Your squad gained 200 points
               </div>
             </div>
           </div>
-        </main>
+        </div>
 
-        {/* Footer */}
         <Footer />
-      </div>
+      </main>
     </div>
   );
 }
@@ -262,7 +196,6 @@ function LeaderboardEntry({ rank, name, points, color, highlight = false }) {
     default:
       rankColor = "bg-cyan-400";
   }
-
   return (
     <div
       className={`flex items-center justify-between border rounded-xl p-4 transition-colors duration-200 ${
@@ -293,7 +226,6 @@ function LeaderboardEntry({ rank, name, points, color, highlight = false }) {
 function ProgressBar({ label, value, max, color }) {
   const percent = (value / max) * 100;
   const colorClass = color === "cyan" ? "bg-cyan-500" : "bg-fuchsia-500";
-
   return (
     <div className="mb-4">
       <div className="flex justify-between mb-1">

@@ -1,200 +1,185 @@
-// src/pages/Messages.jsx
 import React, { useState } from "react";
-import Footer from "../components/Footer";
-
-// ✅ Make sure this path/casing matches your actual file name exactly.
-// If your file is LoggedInNavBar.jsx, use that casing in BOTH the filename and import:
 import LoggedInNavbar from "../components/nav/LoggedInNavBar";
-// or, if your file is LoggedInNavbar.jsx:
-// import LoggedInNavbar from "../components/nav/LoggedInNavbar";
+import Footer from "../components/Footer";
+import {
+  BACKGROUND_COLOR,
+  FEATURE_BG,
+  BORDER_COLOR,
+  ACCENT_GRADIENT,
+  GridOverlay,
+} from "../utils/constants";
 
 export default function Messages() {
-  const messages = [
+  const [threads] = useState([
     {
-      sender: "Sarah Brooks",
-      content: "Hey everyone, has anyone looked at the new LeetCode problem?",
-      time: "2:30 PM",
+      id: "t1",
+      name: "Algorithm Avengers",
+      last: "Standup @ 6p today?",
+      unread: 2,
     },
+    { id: "t2", name: "Rafay", last: "Pushed the fixes to navbar.", unread: 0 },
     {
-      sender: "Jane Dee",
-      content: "Yeah, I'm stuck on the edge cases. Sharing a link now.",
-      time: "2:32 PM",
+      id: "t3",
+      name: "Nabiha",
+      last: "Try constants in Welcome.jsx",
+      unread: 1,
     },
-    {
-      sender: "Jane Dee",
-      content: "https://leetcode.com/problems/two-sum",
-      time: "2:32 PM",
-      isLink: true,
-    },
-    {
-      sender: "Sarah Brooks",
-      content: "Thanks! I'll take a look.",
-      time: "2:33 PM",
-    },
-    {
-      sender: "John Smith",
-      content: "I'll try taking a look at it too!",
-      time: "2:35 PM",
-    },
-    {
-      sender: "John Smith",
-      content: "Also, could one of you send the interview prep document?",
-      time: "2:36 PM",
-    },
-    {
-      sender: "Hillary Robinson",
-      content: "Sure! Interview-Prep.pdf",
-      time: "2:38 PM",
-      isFile: true,
-    },
-  ];
+  ]);
+  const [activeId, setActiveId] = useState("t1");
+  const [messages, setMessages] = useState([
+    { id: 1, who: "them", text: "Standup @ 6p today?" },
+    { id: 2, who: "me", text: "Works for me!" },
+  ]);
+  const [draft, setDraft] = useState("");
 
-  return (
-    <div className="min-h-screen bg-[#0f0f23] text-white">
-      <LoggedInNavbar />
+  const activeThread = threads.find((t) => t.id === activeId);
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-4 gap-8">
-          {/* Left: Squad/DM list or info */}
-          <div className="col-span-1 bg-[#1a1a2e] border border-gray-800 rounded-2xl p-6 h-fit">
-            <h2 className="text-2xl font-bold mb-6">The Algorithm Avengers</h2>
-
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4 text-gray-300">
-                MEMBERS
-              </h3>
-              <div className="space-y-3">
-                {[
-                  "John Smith (You)",
-                  "Jane Dee",
-                  "Sarah Brooks",
-                  "Hillary Robinson",
-                ].map((name) => (
-                  <div key={name} className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full" />
-                    <span>{name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-300">
-                SHARED RESOURCES
-              </h3>
-              <div className="space-y-3">
-                <div className="bg-[#0f0f23] border border-gray-700 rounded-lg p-3 hover:border-blue-500/50 transition-colors duration-200">
-                  <div className="text-blue-400 font-medium">
-                    LeetCode #123: Two Sum
-                  </div>
-                  <div className="text-gray-400 text-sm">
-                    Shared by Jane Dee
-                  </div>
-                </div>
-                <div className="bg-[#0f0f23] border border-gray-700 rounded-lg p-3 hover:border-blue-500/50 transition-colors duration-200">
-                  <div className="text-blue-400 font-medium">
-                    Interview-Prep.pdf
-                  </div>
-                  <div className="text-gray-400 text-sm">
-                    Shared by Hillary Robinson
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Chat area */}
-          <ChatPanel messages={messages} />
-        </div>
-      </main>
-
-      <Footer />
-    </div>
-  );
-}
-
-function ChatPanel({ messages }) {
-  const [message, setMessage] = useState("");
-
-  const handleSendMessage = (e) => {
+  const send = (e) => {
     e.preventDefault();
-    const text = message.trim();
-    if (!text) return;
-    console.log("Sending message:", text);
-    setMessage("");
+    if (!draft.trim()) return;
+    setMessages((ms) => [
+      ...ms,
+      { id: Date.now(), who: "me", text: draft.trim() },
+    ]);
+    setDraft("");
   };
 
   return (
-    <div className="col-span-3 flex flex-col">
-      {/* Header */}
-      <div className="bg-[#1a1a2e] border border-gray-800 rounded-t-2xl p-6">
-        <h1 className="text-2xl font-bold">Group Chat</h1>
-        <p className="text-gray-400">The Algorithm Avengers</p>
-      </div>
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}
+    >
+      <GridOverlay />
+      <LoggedInNavbar />
 
-      {/* Messages */}
-      <div className="flex-grow bg-[#0f0f23] border border-gray-800 border-t-0 rounded-b-2xl p-6 max-h-[600px] overflow-y-auto">
-        <div className="space-y-6">
-          {messages.map((msg, idx) => (
-            <div key={idx} className="flex flex-col space-y-2">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">
-                    {msg.sender
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">{msg.sender}</span>
-                  <span className="text-gray-500 text-sm ml-3">{msg.time}</span>
-                </div>
-              </div>
-              <div className="ml-11">
-                {msg.isLink ? (
-                  <a
-                    href={msg.content}
-                    className="text-blue-400 hover:text-blue-300 underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {msg.content}
-                  </a>
-                ) : msg.isFile ? (
-                  <div className="flex items-center space-x-2 text-blue-400">
-                    <span>📎</span>
-                    <span className="hover:text-blue-300 cursor-pointer">
-                      {msg.content}
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-gray-300">{msg.content}</p>
-                )}
+      {/* ✅ Centered Gradient Header */}
+      <section className="relative mb-10 text-center">
+        <div
+          className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
+        />
+        <div className="relative max-w-7xl mx-auto px-6 pt-10 pb-6">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight font-audiowide mb-1">
+            Messages
+          </h1>
+          <p className="text-gray-300">Chat with your squad and peers.</p>
+        </div>
+      </section>
+      {/* ✅ End Header */}
+
+      <main className="max-w-7xl mx-auto px-6 pb-12 relative z-10">
+        <div className="grid grid-cols-12 gap-6">
+          {/* Threads list */}
+          <aside
+            className={`col-span-12 md:col-span-4 lg:col-span-3 rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-4`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Conversations</h2>
+              <button
+                className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+              >
+                New
+              </button>
+            </div>
+
+            <ul className="space-y-2">
+              {threads.map((t) => {
+                const active = t.id === activeId;
+                return (
+                  <li key={t.id}>
+                    <button
+                      onClick={() => setActiveId(t.id)}
+                      className={`w-full text-left rounded-xl px-3 py-2 border transition ${
+                        active
+                          ? "border-cyan-400 bg-cyan-500/10"
+                          : `${BORDER_COLOR} border hover:border-cyan-400/60`
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`font-medium ${
+                            active ? "text-white" : "text-gray-200"
+                          }`}
+                        >
+                          {t.name}
+                        </span>
+                        {t.unread > 0 && (
+                          <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-fuchsia-600 text-[11px]">
+                            {t.unread}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-400 truncate">
+                        {t.last}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </aside>
+
+          {/* Chat Pane */}
+          <section
+            className={`col-span-12 md:col-span-8 lg:col-span-9 rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-4 md:p-6`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-audiowide tracking-wider">
+                {activeThread?.name ?? "Select a conversation"}
+              </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+                >
+                  Add Member
+                </button>
+                <button
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border hover:border-cyan-400/60`}
+                >
+                  Info
+                </button>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="mt-4">
-        <div className="flex space-x-4">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Write a message..."
-            className="flex-grow px-4 py-3 bg-[#1a1a2e] border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-200"
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
-          >
-            Send
-          </button>
+            <div
+              className={`h-[48vh] md:h-[58vh] rounded-xl overflow-y-auto p-3 space-y-3 ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+            >
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex ${
+                    m.who === "me" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-xl px-3 py-2 text-sm border ${
+                      m.who === "me"
+                        ? "bg-blue-600 border-blue-500"
+                        : `${FEATURE_BG} ${BORDER_COLOR} border`
+                    }`}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={send} className="mt-4 flex gap-2">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Type a message…"
+                className={`flex-1 rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+              />
+              <button
+                className={`px-4 py-2 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+              >
+                Send
+              </button>
+            </form>
+          </section>
         </div>
-      </form>
+
+        <Footer />
+      </main>
     </div>
   );
 }

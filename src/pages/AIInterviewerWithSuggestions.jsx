@@ -1,3 +1,4 @@
+// src/pages/AIInterviewerWithSuggestions.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx";
@@ -9,6 +10,14 @@ import Panel from "../components/ai/Panel.jsx";
 import ChatBubble from "../components/ai/chat/ChatBubble.jsx";
 import ChatInput from "../components/ai/chat/ChatInput.jsx";
 import SuggestedQuestions from "../components/ai/chat/SuggestedQuestions.jsx";
+
+import {
+  BACKGROUND_COLOR,
+  FEATURE_BG,
+  BORDER_COLOR,
+  ACCENT_GRADIENT,
+  GridOverlay,
+} from "../utils/constants";
 
 // ---- Fake AI question generator (stub) ----
 const SAMPLE_QUESTIONS = [
@@ -112,14 +121,21 @@ export default function AIInterviewerWithSuggestions() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f23] text-white grid grid-rows-[auto_auto_1fr]">
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white grid grid-rows-[auto_auto_1fr] relative overflow-hidden font-quicksand`}
+    >
+      <GridOverlay />
       <LoggedInNavBar />
 
       {/* Top bar */}
-      <div className="flex items-center justify-between bg-[#0c123a] border-b border-[#1a214b] px-4 sm:px-6 py-3">
-        <span className="font-medium">Interview – Interviewer</span>
+      <div
+        className={`flex items-center justify-between ${FEATURE_BG} ${BORDER_COLOR} border-b px-4 sm:px-6 py-3`}
+      >
+        <span className="font-audiowide tracking-wider">
+          Interview – Interviewer
+        </span>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[#a9b0d0]">
+          <span className="text-xs text-gray-400">
             Room <span className="font-mono text-white">{room}</span>
           </span>
           <Timer seconds={remaining} className="font-semibold" />
@@ -128,11 +144,11 @@ export default function AIInterviewerWithSuggestions() {
 
       {/* Main grid */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-4 sm:gap-5 p-3 sm:p-5 max-w-[1400px] w-full mx-auto">
-        {/* LEFT: Candidate editor + chat */}
+        {/* LEFT: Shared editor + chat */}
         <div className="space-y-4 sm:space-y-5">
           <Panel
             title="Shared Editor"
-            right={<span className="text-xs text-[#a9b0d0]">JS • Node 18</span>}
+            right={<span className="text-xs text-gray-400">JS • Node 18</span>}
             padded={false}
           >
             <CodeEditor
@@ -153,7 +169,7 @@ export default function AIInterviewerWithSuggestions() {
                 <ChatBubble key={i} role={m.role} text={m.text} time={m.time} />
               ))}
             </div>
-            <div className="border-t border-[#1a214b]">
+            <div className={`${BORDER_COLOR} border-t`}>
               <ChatInput
                 value={msg}
                 onChange={setMsg}
@@ -164,25 +180,32 @@ export default function AIInterviewerWithSuggestions() {
           </Panel>
         </div>
 
-        {/* RIGHT: AI Question + Notepad + Suggestions + Controls */}
+        {/* RIGHT: AI Question + Notepad + Suggestions */}
         <aside className="space-y-4">
           <Panel
             title="AI Question"
             right={
-              <span className="text-xs bg-black/30 px-2 py-1 rounded-lg">
+              <span
+                className={`text-xs ${FEATURE_BG} ${BORDER_COLOR} border px-2 py-1 rounded-lg`}
+              >
                 {current.difficulty}
               </span>
             }
           >
-            <p className="text-sm text-[#a9b0d0] mb-2">
+            <p className="text-sm text-gray-300 mb-2">
               {current.tags.map((t) => (
-                <span key={t} className="mr-2">
+                <span
+                  key={t}
+                  className={`mr-2 inline-block text-xs px-2 py-0.5 rounded-full ${FEATURE_BG} ${BORDER_COLOR} border`}
+                >
                   #{t}
                 </span>
               ))}
             </p>
-            <h4 className="font-medium mb-2">{current.title}</h4>
-            <p className="text-sm leading-relaxed">{current.body}</p>
+            <h4 className="font-semibold mb-2">{current.title}</h4>
+            <p className="text-sm leading-relaxed text-gray-200">
+              {current.body}
+            </p>
             <div className="mt-3 text-xs">
               <span className="font-semibold">
                 Time left <Timer seconds={remaining} inline />
@@ -191,13 +214,13 @@ export default function AIInterviewerWithSuggestions() {
             <div className="mt-4 flex gap-2">
               <button
                 onClick={nextQuestion}
-                className="px-3 py-2 rounded-xl bg-sky-600/60 hover:bg-sky-600/70 text-sm"
+                className={`px-3 py-2 rounded-xl text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
               >
                 Next Question
               </button>
               <button
                 onClick={endInterview}
-                className="px-3 py-2 rounded-xl bg-rose-600/60 hover:bg-rose-600/70 text-sm"
+                className={`px-3 py-2 rounded-xl text-sm ${FEATURE_BG} ${BORDER_COLOR} border hover:border-rose-500/60`}
               >
                 End Interview
               </button>
@@ -209,16 +232,16 @@ export default function AIInterviewerWithSuggestions() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Write private feedback notes here…"
-              className="w-full min-h-[160px] bg-[#0b0e2b] p-3 outline-none rounded-xl text-sm"
+              className={`w-full min-h-[160px] rounded-xl p-3 text-sm outline-none resize-vertical ${BACKGROUND_COLOR} ${BORDER_COLOR} border focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/60`}
             />
           </Panel>
 
           <Panel title="Suggested Questions">
-            {/* Plug existing component */}
             <SuggestedQuestions items={suggestions} onPick={onPickSuggestion} />
           </Panel>
         </aside>
       </div>
+
       <Footer />
     </div>
   );

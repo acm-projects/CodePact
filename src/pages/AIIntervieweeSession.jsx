@@ -1,14 +1,23 @@
+// src/pages/AIIntervieweeSession.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx";
+import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx"; // or LoggedInNavbar (match your file)
 import Footer from "../components/Footer.jsx";
 
-// ✅ shared components
-import Timer from "../components/ai/Timer.jsx"; // if your Timer lives elsewhere, fix path
+// shared components
+import Timer from "../components/ai/Timer.jsx";
 import CodeEditor from "../components/ai/CodeEditor.jsx";
 import Panel from "../components/ai/Panel.jsx";
 import ChatBubble from "../components/ai/chat/ChatBubble.jsx";
 import ChatInput from "../components/ai/chat/ChatInput.jsx";
+
+import {
+  BACKGROUND_COLOR,
+  FEATURE_BG,
+  BORDER_COLOR,
+  ACCENT_GRADIENT,
+  GridOverlay,
+} from "../utils/constants";
 
 function useQuery() {
   const { search } = useLocation();
@@ -44,18 +53,26 @@ export default function AIIntervieweeSession() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f23] text-white grid grid-rows-[auto_auto_1fr]">
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white grid grid-rows-[auto_auto_1fr] relative overflow-hidden font-quicksand`}
+    >
+      <GridOverlay />
       <LoggedInNavBar />
 
       {/* top strip */}
-      <div className="flex items-center justify-between bg-[#0c123a] border-b border-[#1a214b] px-4 sm:px-6 py-3">
-        <span className="font-medium">Interview Session — Interviewee</span>
-        {/* ⌛ Timer component */}
+      <div
+        className={`flex items-center justify-between ${FEATURE_BG} ${BORDER_COLOR} border-b px-4 sm:px-6 py-3`}
+      >
+        <span className="font-audiowide tracking-wider">
+          Interview Session — Interviewee
+        </span>
         <Timer seconds={remaining} className="font-semibold" />
-        {/* If your Timer expects {value} or {totalSeconds}, change prop accordingly */}
       </div>
 
-      <div className="bg-black/30 border-b border-[#1a214b] px-4 sm:px-6 py-2 text-sm">
+      {/* role/room strip */}
+      <div
+        className={`${BACKGROUND_COLOR} ${BORDER_COLOR} border-b px-4 sm:px-6 py-2 text-sm`}
+      >
         You are the <span className="font-semibold">{role}</span> in room{" "}
         <span className="font-mono">{room}</span>.
       </div>
@@ -64,18 +81,27 @@ export default function AIIntervieweeSession() {
         <div className="space-y-4 sm:space-y-5">
           {/* Problem (read-only) */}
           <Panel title="Problem">
-            <p className="text-[#a9b0d0] mb-2">
+            <p className="text-gray-300 mb-2">
               Given an array of integers{" "}
-              <code className="bg-black/30 px-1 rounded">nums</code> and an
-              integer <code className="bg-black/30 px-1 rounded">target</code>,
-              return indices of the two numbers that add up to target.
+              <code
+                className={`${FEATURE_BG} ${BORDER_COLOR} border px-1 rounded`}
+              >
+                nums
+              </code>{" "}
+              and an integer{" "}
+              <code
+                className={`${FEATURE_BG} ${BORDER_COLOR} border px-1 rounded`}
+              >
+                target
+              </code>
+              , return indices of the two numbers that add up to target.
             </p>
           </Panel>
 
           {/* Editor (primary focus for interviewee) */}
           <Panel
             title="Editor"
-            right={<span className="text-xs text-[#a9b0d0]">JS • Node 18</span>}
+            right={<span className="text-xs text-gray-400">JS • Node 18</span>}
             padded={false}
           >
             <CodeEditor
@@ -99,7 +125,7 @@ export default function AIIntervieweeSession() {
               <ChatBubble key={i} role={m.role} text={m.text} time={m.time} />
             ))}
           </div>
-          <div className="border-t border-[#1a214b]">
+          <div className={`${BORDER_COLOR} border-t`}>
             <ChatInput
               value={msg}
               onChange={setMsg}
@@ -109,6 +135,7 @@ export default function AIIntervieweeSession() {
           </div>
         </Panel>
       </div>
+
       <Footer />
     </div>
   );

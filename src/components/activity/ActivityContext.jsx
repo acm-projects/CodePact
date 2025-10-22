@@ -1,3 +1,4 @@
+// src/components/activity/ActivityContext.jsx
 import React, { createContext, useContext, useState } from "react";
 import { scoreActivity } from "./scoreUtils";
 
@@ -8,8 +9,11 @@ export function ActivityProvider({ children }) {
   const [scores, setScores] = useState([]);
 
   const addActivity = (activity) => {
+    // Optional: restrict to application|interview
+    if (!["application", "interview"].includes(activity?.kind)) return;
+
     const id = String(Date.now());
-    const userId = "demoUser"; // replace with real user ID later
+    const userId = "demoUser";
     const full = {
       ...activity,
       id,

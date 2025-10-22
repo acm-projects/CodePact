@@ -2,21 +2,28 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/nav/NavBar";
 import Footer from "../components/Footer";
-import Button from "../components/Button";      // Primary Button component
+import Button from "../components/Button"; // Primary Button component
 import FormInput from "../components/FormInput.jsx"; // Reusable Input component
 import {
-    BACKGROUND_COLOR, ACCENT_GRADIENT, FEATURE_BG, BORDER_COLOR, GridOverlay,
+  BACKGROUND_COLOR,
+  ACCENT_GRADIENT,
+  FEATURE_BG,
+  BORDER_COLOR,
+  GridOverlay,
 } from "../utils/constants";
-
 
 export default function CreateAccount() {
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "", 
-    password: "", confirmPassword: "", agreeToTerms: false
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    agreeToTerms: false,
   });
-  
+
   const navigate = useNavigate();
 
   const showErrorMessage = (message) => {
@@ -26,15 +33,15 @@ export default function CreateAccount() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       showErrorMessage("Error: Passwords do not match.");
       return;
@@ -42,17 +49,19 @@ export default function CreateAccount() {
 
     // Simulate account creation success
     console.log("Attempting account activation...");
-    
+
     // Navigate to the Congratulations page
     setTimeout(() => {
-        navigate("/congratulations");
+      navigate("/congratulations");
     }, 500);
   };
 
   return (
-    <div className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}>
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}
+    >
       <GridOverlay />
-      
+
       {/* Background Glows */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none z-0">
         <div className="absolute top-[-10rem] left-1/4 w-[50rem] h-[50rem] bg-fuchsia-500/10 rounded-full filter blur-3xl"></div>
@@ -66,11 +75,16 @@ export default function CreateAccount() {
       </div>
 
       <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
-        <div className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}>
-          
+        <div
+          className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}
+        >
           <div className="text-center mb-8">
             <h1 className="text-3xl font-audiowide tracking-widest mb-2 uppercase">
-              <span className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}>CREATE YOUR ACCOUNT</span>
+              <span
+                className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
+              >
+                CREATE YOUR ACCOUNT
+              </span>
             </h1>
             <p className="text-gray-400 text-sm font-light">
               Step into the future of job hunting — together.
@@ -78,20 +92,54 @@ export default function CreateAccount() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            
             <div className="grid grid-cols-2 gap-4">
-              <FormInput label="First Name" type="text" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="First name" />
-              <FormInput label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Last name" />
+              <FormInput
+                label="First Name"
+                type="text"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="First name"
+              />
+              <FormInput
+                label="Last Name"
+                type="text"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Last name"
+              />
             </div>
 
-            <FormInput label="Email" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email" />
+            <FormInput
+              label="Email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+            />
 
-            <FormInput label="Password" type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Create a password" />
+            <FormInput
+              label="Password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Create a password"
+            />
             <p className="text-gray-400 text-xs mt-2 font-light">
               Must be at least 8 characters with a number and special character
             </p>
 
-            <FormInput label="Confirm Password" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm your password" />
+            <FormInput
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Confirm your password"
+            />
 
             {/* Terms and Conditions */}
             <div className="flex items-start space-x-3 pt-2">
@@ -105,17 +153,24 @@ export default function CreateAccount() {
               />
               <label className="text-sm text-gray-300 font-light">
                 I agree to the{" "}
-                <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Terms of Service</a>{" "}
+                <a
+                  href="#"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  Terms of Service
+                </a>{" "}
                 and{" "}
-                <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Privacy Policy</a>
+                <a
+                  href="#"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  Privacy Policy
+                </a>
               </label>
             </div>
 
             {/* Primary CTA Button */}
-            <Button 
-              type="submit" 
-              widthClass="w-full" 
-            >
+            <Button type="submit" widthClass="w-full">
               ACTIVATE ACCOUNT
             </Button>
 

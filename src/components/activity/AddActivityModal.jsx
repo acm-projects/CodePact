@@ -1,9 +1,16 @@
+// src/components/activity/AddActivityModal.jsx
 import React, { useState } from "react";
 import { useActivity } from "./ActivityContext";
+import {
+  BACKGROUND_COLOR,
+  FEATURE_BG,
+  BORDER_COLOR,
+  ACCENT_GRADIENT,
+} from "../../utils/constants";
 
 export default function AddActivityModal({ open, onClose }) {
   const { addActivity } = useActivity();
-  const [tab, setTab] = useState("application");
+  const [tab, setTab] = useState("application"); // only application | interview
 
   const handleSubmit = (activity) => {
     addActivity(activity);
@@ -14,35 +21,53 @@ export default function AddActivityModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-[#0f0f23] border border-gray-800 shadow-xl">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 font-quicksand">
+      <div
+        className={`w-full max-w-2xl rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border shadow-2xl`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
-          <div className="flex gap-2 text-sm">
-            {["application", "interview", "problem"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-3 py-1.5 rounded-lg border transition ${
-                  tab === t
-                    ? "border-blue-500 text-blue-300 bg-blue-500/10"
-                    : "border-gray-700 text-gray-400 hover:text-white"
-                }`}
-              >
-                {t[0].toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+        <div
+          className={`px-5 py-4 ${BORDER_COLOR} border-b flex items-center justify-between`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400">Log Activity</span>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-xl leading-none"
+          >
             ✕
           </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="px-5 pt-4">
+          <div className="inline-flex rounded-lg overflow-hidden border border-gray-700">
+            {["application", "interview"].map((t) => {
+              const active = tab === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-2 text-sm transition border-r last:border-r-0 border-gray-700 ${
+                    active ? "text-white" : "text-gray-400 hover:text-white"
+                  } ${
+                    active
+                      ? "bg-gradient-to-r from-cyan-500/20 via-fuchsia-500/20 to-pink-500/20"
+                      : ""
+                  }`}
+                >
+                  {t[0].toUpperCase() + t.slice(1)}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Content */}
         <div className="p-5">
           {tab === "application" && <ApplicationForm onSubmit={handleSubmit} />}
           {tab === "interview" && <InterviewForm onSubmit={handleSubmit} />}
-          {tab === "problem" && <ProblemForm onSubmit={handleSubmit} />}
         </div>
       </div>
     </div>
@@ -68,50 +93,42 @@ function ApplicationForm({ onSubmit }) {
 
   return (
     <div className="grid gap-3">
-      <input
-        className="input"
+      <TextInput
         placeholder="Company *"
         value={state.company}
-        onChange={(e) => set({ ...state, company: e.target.value })}
+        onChange={(v) => set({ ...state, company: v })}
       />
-      <input
-        className="input"
+      <TextInput
         placeholder="Role/Title *"
         value={state.role}
-        onChange={(e) => set({ ...state, role: e.target.value })}
+        onChange={(v) => set({ ...state, role: v })}
       />
-      <select
-        className="input"
+
+      <Select
         value={state.source}
-        onChange={(e) => set({ ...state, source: e.target.value })}
-      >
-        <option>ATS</option>
-        <option>Referral</option>
-        <option>Portal</option>
-        <option>Other</option>
-      </select>
-      <input
-        className="input"
+        onChange={(v) => set({ ...state, source: v })}
+        options={["ATS", "Referral", "Portal", "Other"]}
+      />
+
+      <TextInput
         type="date"
         value={state.appliedAt}
-        onChange={(e) => set({ ...state, appliedAt: e.target.value })}
+        onChange={(v) => set({ ...state, appliedAt: v })}
       />
-      <input
-        className="input"
+      <TextInput
         placeholder="Posting link (optional)"
         value={state.link}
-        onChange={(e) => set({ ...state, link: e.target.value })}
+        onChange={(v) => set({ ...state, link: v })}
       />
-      <textarea
-        className="input min-h-24"
+
+      <Textarea
         placeholder="Notes"
         value={state.notes}
-        onChange={(e) => set({ ...state, notes: e.target.value })}
+        onChange={(v) => set({ ...state, notes: v })}
       />
+
       <div className="pt-2 flex justify-end">
-        <button className="btn-primary" onClick={save}>
-          Save Application
-        </button>
+        <PrimaryButton onClick={save}>Save Application</PrimaryButton>
       </div>
     </div>
   );
@@ -139,135 +156,114 @@ function InterviewForm({ onSubmit }) {
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-2 gap-3">
-        <select
-          className="input"
+        <Select
           value={state.type}
-          onChange={(e) => set({ ...state, type: e.target.value })}
-        >
-          <option>phone</option>
-          <option>virtual</option>
-          <option>onsite</option>
-          <option>mock</option>
-        </select>
-        <select
-          className="input"
+          onChange={(v) => set({ ...state, type: v })}
+          options={["phone", "virtual", "onsite", "mock"]}
+        />
+        <Select
           value={state.stage}
-          onChange={(e) => set({ ...state, stage: e.target.value })}
-        >
-          <option>screen</option>
-          <option>oa</option>
-          <option>tech</option>
-          <option>behavioral</option>
-          <option>final</option>
-        </select>
+          onChange={(v) => set({ ...state, stage: v })}
+          options={["screen", "oa", "tech", "behavioral", "final"]}
+        />
       </div>
-      <input
-        className="input"
+
+      <TextInput
         placeholder="Company *"
         value={state.company}
-        onChange={(e) => set({ ...state, company: e.target.value })}
+        onChange={(v) => set({ ...state, company: v })}
       />
-      <input
-        className="input"
+      <TextInput
         placeholder="Role/Title *"
         value={state.role}
-        onChange={(e) => set({ ...state, role: e.target.value })}
+        onChange={(v) => set({ ...state, role: v })}
       />
-      <input
-        className="input"
+      <TextInput
         type="datetime-local"
         value={state.startAt}
-        onChange={(e) => set({ ...state, startAt: e.target.value })}
+        onChange={(v) => set({ ...state, startAt: v })}
       />
-      <input
-        className="input"
+      <TextInput
         type="number"
         min="5"
         max="240"
         value={state.durationMin}
-        onChange={(e) => set({ ...state, durationMin: +e.target.value })}
+        onChange={(v) => set({ ...state, durationMin: +v })}
         placeholder="Duration (minutes)"
       />
-      <select
-        className="input"
+      <Select
         value={state.outcome}
-        onChange={(e) => set({ ...state, outcome: e.target.value })}
-      >
-        <option>scheduled</option>
-        <option>completed</option>
-        <option>offer</option>
-        <option>rejected</option>
-        <option>waiting</option>
-      </select>
-      <textarea
-        className="input min-h-24"
+        onChange={(v) => set({ ...state, outcome: v })}
+        options={["scheduled", "completed", "offer", "rejected", "waiting"]}
+      />
+      <Textarea
         placeholder="Notes"
         value={state.notes}
-        onChange={(e) => set({ ...state, notes: e.target.value })}
+        onChange={(v) => set({ ...state, notes: v })}
       />
+
       <div className="pt-2 flex justify-end">
-        <button className="btn-primary" onClick={save}>
-          Save Interview
-        </button>
+        <PrimaryButton onClick={save}>Save Interview</PrimaryButton>
       </div>
     </div>
   );
 }
 
-/* ---------- Problem Form ---------- */
-function ProblemForm({ onSubmit }) {
-  const [state, set] = useState({
-    platform: "LeetCode",
-    problemId: "",
-    difficulty: "Easy",
-    solvedAt: new Date().toISOString().slice(0, 10),
-  });
+/* ---------- Reusable form primitives (styled with tokens) ---------- */
 
-  const save = () => {
-    if (!state.problemId) return alert("Problem ID is required");
-    onSubmit({ kind: "problem", ...state });
-  };
-
+function TextInput({ value, onChange, placeholder, type = "text", ...rest }) {
   return (
-    <div className="grid gap-3">
-      <div className="grid grid-cols-2 gap-3">
-        <select
-          className="input"
-          value={state.platform}
-          onChange={(e) => set({ ...state, platform: e.target.value })}
-        >
-          <option>LeetCode</option>
-          <option>HackerRank</option>
-          <option>Codeforces</option>
-          <option>Other</option>
-        </select>
-        <select
-          className="input"
-          value={state.difficulty}
-          onChange={(e) => set({ ...state, difficulty: e.target.value })}
-        >
-          <option>Easy</option>
-          <option>Medium</option>
-          <option>Hard</option>
-        </select>
-      </div>
-      <input
-        className="input"
-        placeholder="Problem ID or URL *"
-        value={state.problemId}
-        onChange={(e) => set({ ...state, problemId: e.target.value })}
-      />
-      <input
-        className="input"
-        type="date"
-        value={state.solvedAt}
-        onChange={(e) => set({ ...state, solvedAt: e.target.value })}
-      />
-      <div className="pt-2 flex justify-end">
-        <button className="btn-primary" onClick={save}>
-          Save Problem
-        </button>
-      </div>
-    </div>
+    <input
+      {...rest}
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full rounded-lg px-3 py-2 text-sm outline-none transition
+        ${BACKGROUND_COLOR} ${BORDER_COLOR} border
+        focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/60`}
+    />
+  );
+}
+
+function Textarea({ value, onChange, placeholder }) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full min-h-24 rounded-lg px-3 py-2 text-sm outline-none transition
+        ${BACKGROUND_COLOR} ${BORDER_COLOR} border
+        focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/60`}
+    />
+  );
+}
+
+function Select({ value, onChange, options }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full rounded-lg px-3 py-2 text-sm outline-none transition
+        ${BACKGROUND_COLOR} ${BORDER_COLOR} border
+        focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/60`}
+    >
+      {options.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function PrimaryButton({ children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT} text-white`}
+    >
+      {children}
+    </button>
   );
 }

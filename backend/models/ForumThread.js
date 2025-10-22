@@ -8,11 +8,10 @@ const CommentSchema = new mongoose.Schema({
 }, { _id: true });
 
 const ForumThreadSchema = new mongoose.Schema({
-  // Reference to the job we are discussing. You can store job code or job _id.
-  //Onet Code
-  jobCode: { type: String, index: true, required: true }, 
+  // Reference to the job we are discussing. You can store job _id.
   //Reference to job document
   jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', default: null },
+  jobCode: { type: String, required: true },
   companyName: { type: String, required: true },
 
   // thread content

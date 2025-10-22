@@ -2,12 +2,12 @@ const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema({
   title: String,
-  code: String,
-  category: String,
+  company: String,
+  location: String,
   description: String,
-  skills: [String],
-  techField: Boolean,
-  createdAt: { type: Date, default: Date.now }
-});
+  url: String,
+  category: String,
+  salary: Number
+}, { timestamps: true });
 
 module.exports = mongoose.model('Job', jobSchema);

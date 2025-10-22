@@ -1,13 +1,17 @@
-import React from "react";
+// src/App.jsx
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+import { ActivityProvider } from "./components/activity/ActivityContext";
 
+// Core pages
 import Welcome from "./pages/Welcome.jsx";
 import Login from "./pages/Login.jsx";
+import CreateAccount from "./pages/CreateAccount.jsx";
+import Congratulations from "./pages/Congratulations.jsx";
 import Leaderboard from "./pages/Leaderboard.jsx";
 import Messages from "./pages/Messages.jsx";
 import Forum from "./pages/Forum.jsx";
@@ -15,15 +19,12 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import RemindersPage from "./pages/RemindersPage.jsx";
 import Squads from "./pages/Squads.jsx";
 import Notifications from "./pages/Notifications.jsx";
-import { ActivityProvider } from "./components/activity/ActivityContext";
 
-// Landing + sessions
+// AI Interviewer
 import AIInterviewerLanding from "./pages/AIInterviewerLanding.jsx";
-import AIInterviewerBasic from "./pages/AIInterviewerBasic.jsx"; // interviewer (no prompts)
-import AIInterviewerWithSuggestions from "./pages/AIInterviewerWithSuggestions.jsx"; // interviewer (with prompts)
-import AIIntervieweeSession from "./pages/AIIntervieweeSession.jsx"; // interviewee
-
-// NEW
+import AIInterviewerBasic from "./pages/AIInterviewerBasic.jsx";
+import AIInterviewerWithSuggestions from "./pages/AIInterviewerWithSuggestions.jsx";
+import AIIntervieweeSession from "./pages/AIIntervieweeSession.jsx";
 import InterviewFeedback from "./pages/InterviewFeedback.jsx";
 import InterviewHistory from "./pages/InterviewHistory.jsx";
 
@@ -33,8 +34,13 @@ export default function App() {
       <Router>
         <div className="min-h-screen bg-[#0f0f23] text-white">
           <Routes>
+            {/* Auth / Landing */}
             <Route path="/" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/create-account" element={<CreateAccount />} />
+            <Route path="/congratulations" element={<Congratulations />} />
+
+            {/* App */}
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/public-forum" element={<Forum />} />
@@ -43,10 +49,8 @@ export default function App() {
             <Route path="/squads" element={<Squads />} />
             <Route path="/notifications" element={<Notifications />} />
 
-            {/* Landing */}
+            {/* AI Interviewer */}
             <Route path="/interview" element={<AIInterviewerLanding />} />
-
-            {/* Sessions */}
             <Route path="/interview/session" element={<AIInterviewerBasic />} />
             <Route
               path="/interview/session/suggestions"
@@ -56,19 +60,17 @@ export default function App() {
               path="/interview/session/interviewee"
               element={<AIIntervieweeSession />}
             />
-
-            {/* Feedback & History */}
             <Route path="/interview/feedback" element={<InterviewFeedback />} />
             <Route path="/interview/history" element={<InterviewHistory />} />
 
-            {/* Optional redirects for old links */}
+            {/* Legacy redirects from older nav labels */}
             <Route
               path="/ai-interviewer"
               element={<Navigate to="/interview" replace />}
             />
             <Route
-              path="/ai-interviewer/suggestions"
-              element={<Navigate to="/interview/session/suggestions" replace />}
+              path="/group-chat"
+              element={<Navigate to="/messages" replace />}
             />
 
             {/* 404 */}

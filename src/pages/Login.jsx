@@ -1,7 +1,20 @@
-import { useState } from "react";
+// src/pages/Login.jsx
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/nav/NavBar";
+
+// Components
 import Footer from "../components/Footer";
+import Button from "../components/Button";
+import FormInput from "../components/FormInput";
+
+// Styles & Utilities
+import {
+  BACKGROUND_COLOR,
+  ACCENT_GRADIENT,
+  FEATURE_BG,
+  BORDER_COLOR,
+  GridOverlay,
+} from "../utils/constants";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -11,19 +24,50 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Logging in with:", { email, password, rememberMe });
-    // After successful login, navigate to leaderboard
+    console.log("Logging in:", { email, password, rememberMe });
+    // ✅ Navigate to Leaderboard after login
     navigate("/leaderboard");
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f23] text-white">
-      <Navbar />
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand flex flex-col`}
+    >
+      {/* Grid overlay for subtle background lines */}
+      <GridOverlay />
 
-      <main className="max-w-md mx-auto px-6 py-12">
-        {/* Login Card */}
-        <div className="bg-[#1a1a2e] border border-gray-800 rounded-2xl p-8 shadow-2xl">
+      {/* Background Glow */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none z-0">
+        <div className="absolute top-[-10rem] left-1/4 w-[50rem] h-[50rem] bg-fuchsia-500/10 rounded-full filter blur-3xl" />
+      </div>
+
+      {/* Simple header (former NavBar was removed in merges) */}
+      <header className="relative z-10 w-full">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div
+              className={`w-8 h-8 ${ACCENT_GRADIENT} rounded-md flex items-center justify-center`}
+            >
+              <span className="font-bold">CP</span>
+            </div>
+            <span className="font-audiowide tracking-wide">CodePact</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/create-account")}
+            className="text-sm text-cyan-300 hover:text-cyan-200"
+          >
+            Create account
+          </button>
+        </div>
+        <div className="h-[2px] bg-gray-700 opacity-70" />
+      </header>
+
+      {/* Login Card */}
+      <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
+        <div
+          className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}
+        >
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold mb-2">CodePact</h1>
@@ -33,72 +77,66 @@ export default function Login() {
             <p className="text-gray-400 text-sm">
               Continue your collaborative tech job hunt.
             </p>
+            <h1
+              className={`text-3xl font-audiowide tracking-widest mb-2 uppercase bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
+            >
+              SQUAD LOGIN
+            </h1>
+            <p className="text-gray-400 text-sm font-light">
+              Access your collaborative job hunt dashboard.
+            </p>
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-gray-700 my-6"></div>
-
-          {/* Login Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter login email"
-                className="w-full px-4 py-3 bg-[#0f0f23] border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-200"
-                required
-              />
-            </div>
+            <FormInput
+              label="Email"
+              type="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter login email"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 bg-[#0f0f23] border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition duration-200"
-                required
-              />
-            </div>
+            <FormInput
+              label="Password"
+              type="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+            />
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center">
+            <div className="flex items-center justify-between text-sm pt-2">
+              <label className="flex items-center text-gray-300">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-[#0f0f23] border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                  className="w-4 h-4 text-fuchsia-500 bg-[#05001A] border-gray-600 rounded focus:ring-fuchsia-500 focus:ring-2 transition duration-200"
                 />
-                <span className="ml-2 text-gray-300">Remember me</span>
+                <span className="ml-2 font-light">Remember me</span>
               </label>
               <a
                 href="#"
-                className="text-blue-400 hover:text-blue-300 transition-colors"
+                className="text-cyan-400 hover:text-cyan-300 transition-colors font-light"
               >
                 Forgot password?
               </a>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
-            >
-              Login
-            </button>
+            {/* Log In Button */}
+            <Button type="submit" widthClass="w-full">
+              LOG IN
+            </Button>
 
+            {/* Sign Up Link */}
             <div className="text-center text-sm text-gray-400">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <button
                 type="button"
-                onClick={() => navigate("/")}
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                onClick={() => navigate("/create-account")}
+                className="text-fuchsia-400 hover:text-fuchsia-300 font-semibold transition-colors"
               >
                 Create a new one
               </button>

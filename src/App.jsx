@@ -19,6 +19,7 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import RemindersPage from "./pages/RemindersPage.jsx";
 import Squads from "./pages/Squads.jsx";
 import Notifications from "./pages/Notifications.jsx";
+import GroupCreation from "./pages/GroupCreation.jsx";
 
 // AI Interviewer
 import AIInterviewerLanding from "./pages/AIInterviewerLanding.jsx";
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/reminders" element={<RemindersPage />} />
             <Route path="/squads" element={<Squads />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/group-creation" element={<GroupCreation />} />
 
             {/* AI Interviewer */}
             <Route path="/interview" element={<AIInterviewerLanding />} />

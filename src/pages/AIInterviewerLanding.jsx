@@ -67,7 +67,7 @@ export default function AIInterviewerLanding() {
       <GridOverlay />
       <LoggedInNavBar />
 
-      {/* ✅ Gradient hero added here */}
+      {/* Gradient hero added here */}
       <section className="relative">
         <div
           className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
@@ -87,7 +87,7 @@ export default function AIInterviewerLanding() {
           </p>
         </div>
       </section>
-      {/* ✅ End gradient header */}
+      {/*  End gradient header */}
 
       <main className="max-w-5xl mx-auto w-full px-6 md:px-10 py-10 space-y-8 text-sm relative z-10">
         {/* Start Session */}

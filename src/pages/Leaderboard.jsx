@@ -35,7 +35,7 @@ export default function Leaderboard() {
 
   const stats = [
     { label: "Your Squad Points", value: 123, color: "text-rose-400" },
-    { label: "Problems Solved", value: 3900, color: "text-lime-400" },
+    { label: "Mock Interviews Completed", value: 3900, color: "text-lime-400" },
     { label: "Applications Sent", value: 45, color: "text-orange-400" },
     { label: "Leetcode Problems Solved", value: 120, color: "text-sky-400" },
   ];
@@ -45,7 +45,7 @@ export default function Leaderboard() {
       <LoggedInNavbar />
       <GridOverlay />
 
-      {/* ✅ Gradient Band added here */}
+      {/*  Gradient Band added here */}
       <section className="relative">
         <div
           className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}

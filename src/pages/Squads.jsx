@@ -11,71 +11,174 @@ import {
 } from "../utils/constants";
 
 export default function Squads() {
-  // --- Mock Data ---
-  const MEMBERS = [
-    {
-      id: 1,
-      name: "Rafay",
-      role: "Owner",
-      focus: "Apps (3/wk)",
-      lastDays: 2,
-      lastType: "problem",
+  // --- Mocked multi-squad store (each squad has its own data/state) ---
+  const INITIAL_SQUADS = {
+    s1: {
+      id: "s1",
+      name: "Fall Placements",
+      members: [
+        {
+          id: 1,
+          name: "Rafay",
+          role: "Owner",
+          focus: "Apps (3/wk)",
+          lastDays: 2,
+          lastType: "problem",
+        },
+        {
+          id: 2,
+          name: "Nabiha",
+          role: "Member",
+          focus: "DSA (5/wk)",
+          lastDays: 8,
+          lastType: "application",
+        },
+        {
+          id: 3,
+          name: "Tharun",
+          role: "Member",
+          focus: "Mocks (2/wk)",
+          lastDays: 14,
+          lastType: "problem",
+        },
+        {
+          id: 4,
+          name: "Adi",
+          role: "Member",
+          focus: "Projects (1/wk)",
+          lastDays: 1,
+          lastType: "interview",
+        },
+      ],
+      rituals: [
+        {
+          id: "r1",
+          title: "Daily Check-in",
+          when: "Everyday · 9:00 AM",
+          type: "standup",
+        },
+        {
+          id: "r2",
+          title: "Mock Interview",
+          when: "Wed · 6:00 PM",
+          type: "mock",
+        },
+        {
+          id: "r3",
+          title: "Weekly Retro",
+          when: "Sun · 7:00 PM",
+          type: "retro",
+        },
+      ],
+      commitments: [
+        { id: 1, memberId: 1, text: "Apply to 3 roles", done: false },
+        { id: 2, memberId: 2, text: "Solve 5 DSA problems", done: true },
+        { id: 3, memberId: 3, text: "2 mock interviews", done: false },
+      ],
+      pins: [
+        { id: "p1", title: "Resume master doc", url: "#", by: "Rafay" },
+        { id: "p2", title: "DSA sheet (Top 75)", url: "#", by: "Nabiha" },
+      ],
+      recentReminders: [{ id: "rr1", name: "Tharun", when: "15m ago" }],
     },
-    {
-      id: 2,
-      name: "Nabiha",
-      role: "Member",
-      focus: "DSA (5/wk)",
-      lastDays: 8,
-      lastType: "application",
+    s2: {
+      id: "s2",
+      name: "DSA Grind",
+      members: [
+        {
+          id: 1,
+          name: "Rafay",
+          role: "Owner",
+          focus: "DSA (7/wk)",
+          lastDays: 0,
+          lastType: "problem",
+        },
+        {
+          id: 5,
+          name: "Sara",
+          role: "Member",
+          focus: "System Design",
+          lastDays: 9,
+          lastType: "interview",
+        },
+        {
+          id: 6,
+          name: "Ishan",
+          role: "Member",
+          focus: "Apps (2/wk)",
+          lastDays: 11,
+          lastType: "application",
+        },
+      ],
+      rituals: [
+        {
+          id: "r4",
+          title: "LeetCode Sprint",
+          when: "Tue · 8:00 PM",
+          type: "practice",
+        },
+        {
+          id: "r5",
+          title: "Whiteboard Friday",
+          when: "Fri · 5:00 PM",
+          type: "mock",
+        },
+      ],
+      commitments: [
+        { id: 11, memberId: 1, text: "Finish DP playlist", done: false },
+        { id: 12, memberId: 5, text: "1 sys-design outline", done: false },
+      ],
+      pins: [{ id: "p3", title: "Neetcode patterns", url: "#", by: "Ishan" }],
+      recentReminders: [],
     },
-    {
-      id: 3,
-      name: "Tharun",
-      role: "Member",
-      focus: "Mocks (2/wk)",
-      lastDays: 14,
-      lastType: "problem",
+    s3: {
+      id: "s3",
+      name: "Project Builders",
+      members: [
+        {
+          id: 1,
+          name: "Rafay",
+          role: "Owner",
+          focus: "Projects (2/wk)",
+          lastDays: 3,
+          lastType: "project",
+        },
+        {
+          id: 7,
+          name: "Ava",
+          role: "Member",
+          focus: "Docs & QA",
+          lastDays: 5,
+          lastType: "project",
+        },
+      ],
+      rituals: [
+        { id: "r6", title: "Demo Day", when: "Sat · 4:00 PM", type: "demo" },
+      ],
+      commitments: [
+        { id: 21, memberId: 7, text: "Write README and tests", done: false },
+      ],
+      pins: [{ id: "p4", title: "API checklist", url: "#", by: "Ava" }],
+      recentReminders: [],
     },
-    {
-      id: 4,
-      name: "Adi",
-      role: "Member",
-      focus: "Projects (1/wk)",
-      lastDays: 1,
-      lastType: "interview",
-    },
-  ];
+  };
 
-  const RITUALS = [
-    {
-      id: "r1",
-      title: "Daily Check-in",
-      when: "Everyday · 9:00 AM",
-      type: "standup",
-    },
-    { id: "r2", title: "Mock Interview", when: "Wed · 6:00 PM", type: "mock" },
-    { id: "r3", title: "Weekly Retro", when: "Sun · 7:00 PM", type: "retro" },
-  ];
+  const [squads, setSquads] = useState(INITIAL_SQUADS);
+  const [selectedSquadId, setSelectedSquadId] = useState("s1");
 
-  const [commitments, setCommitments] = useState([
-    { id: 1, memberId: 1, text: "Apply to 3 roles", done: false },
-    { id: 2, memberId: 2, text: "Solve 5 DSA problems", done: true },
-    { id: 3, memberId: 3, text: "2 mock interviews", done: false },
-  ]);
+  // --- Derived for convenience ---
+  const squad = squads[selectedSquadId];
+  const MEMBERS = squad.members;
+  const RITUALS = squad.rituals;
+  const commitments = squad.commitments;
+  const pins = squad.pins;
+  const recentReminders = squad.recentReminders;
+
+  // --- UI state for "add commitment" input ---
   const [newCommit, setNewCommit] = useState({
-    memberId: MEMBERS[0].id,
+    memberId: MEMBERS[0]?.id ?? 0,
     text: "",
   });
-
-  const [pins, setPins] = useState([
-    { id: "p1", title: "Resume master doc", url: "#", by: "Rafay" },
-    { id: "p2", title: "DSA sheet (Top 75)", url: "#", by: "Nabiha" },
-  ]);
-
-  const [recentReminders, setRecentReminders] = useState([
-    { id: "rr1", name: "Tharun", when: "15m ago" },
-  ]);
 
   // --- Helpers ---
   const INACTIVE_DAYS = 7;
@@ -89,40 +192,71 @@ export default function Squads() {
       ? "Mock Interviews"
       : "Activity";
 
+  // --- Mutators that are squad-aware ---
+  const updateSquad = (updater) =>
+    setSquads((prev) => ({
+      ...prev,
+      [selectedSquadId]: updater(prev[selectedSquadId]),
+    }));
+
   const toggleCommit = (id) =>
-    setCommitments((cs) =>
-      cs.map((c) => (c.id === id ? { ...c, done: !c.done } : c))
-    );
+    updateSquad((cur) => ({
+      ...cur,
+      commitments: cur.commitments.map((c) =>
+        c.id === id ? { ...c, done: !c.done } : c
+      ),
+    }));
 
   const addCommit = (e) => {
     e.preventDefault();
     if (!newCommit.text.trim()) return;
-    setCommitments((cs) => [
-      ...cs,
-      {
-        id: Date.now(),
-        memberId: Number(newCommit.memberId),
-        text: newCommit.text.trim(),
-        done: false,
-      },
-    ]);
-    setNewCommit({ memberId: MEMBERS[0].id, text: "" });
+    updateSquad((cur) => ({
+      ...cur,
+      commitments: [
+        ...cur.commitments,
+        {
+          id: Date.now(),
+          memberId: Number(newCommit.memberId),
+          text: newCommit.text.trim(),
+          done: false,
+        },
+      ],
+    }));
+    setNewCommit({ memberId: MEMBERS[0]?.id ?? 0, text: "" });
   };
 
-  const handleRemind = (member) => {
-    setRecentReminders((s) =>
-      [
+  const removeCommit = (id) =>
+    updateSquad((cur) => ({
+      ...cur,
+      commitments: cur.commitments.filter((c) => c.id !== id),
+    }));
+
+  const handleRemind = (member) =>
+    updateSquad((cur) => ({
+      ...cur,
+      recentReminders: [
         { id: String(Date.now()), name: member.name, when: "just now" },
-        ...s,
-      ].slice(0, 5)
-    );
-  };
+        ...cur.recentReminders,
+      ].slice(0, 5),
+    }));
 
   const addPin = () => {
     const title = prompt("Title");
     const url = prompt("URL");
-    if (title && url)
-      setPins((s) => [...s, { id: String(Date.now()), title, url, by: "You" }]);
+    if (title && url) {
+      updateSquad((cur) => ({
+        ...cur,
+        pins: [...cur.pins, { id: String(Date.now()), title, url, by: "You" }],
+      }));
+    }
+  };
+
+  // When switching squads, keep the add-commit select pointing to a valid member
+  const onChangeSquad = (e) => {
+    const nextId = e.target.value;
+    setSelectedSquadId(nextId);
+    const nextMembers = squads[nextId].members;
+    setNewCommit((s) => ({ ...s, memberId: nextMembers[0]?.id ?? 0 }));
   };
 
   return (
@@ -139,16 +273,34 @@ export default function Squads() {
         />
         <div className="relative max-w-7xl mx-auto px-6 pt-10 pb-6">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div>
+            <div className="space-y-2">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight font-audiowide uppercase">
                 Your Squad
               </h1>
-              <p className="text-gray-300 mt-1">
+              <p className="text-gray-300">
                 Set commitments, run lightweight check-ins, and keep each other
                 accountable.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Squad Selector + Actions */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
+              <label className="sr-only" htmlFor="squad-select">
+                Select squad
+              </label>
+              <select
+                id="squad-select"
+                value={selectedSquadId}
+                onChange={onChangeSquad}
+                className={`rounded-xl px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+              >
+                {Object.values(squads).map((sq) => (
+                  <option key={sq.id} value={sq.id}>
+                    {sq.name}
+                  </option>
+                ))}
+              </select>
+
               <button
                 className={`px-4 py-2 rounded-xl ${FEATURE_BG} ${BORDER_COLOR} border hover:border-gray-500 text-sm font-medium transition`}
               >
@@ -167,9 +319,12 @@ export default function Squads() {
         {/* Top Grid */}
         <section className="grid lg:grid-cols-3 gap-6">
           <Card>
-            <h2 className="font-audiowide tracking-wider text-lg mb-4">
-              Members & Roles
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-audiowide tracking-wider text-lg">
+                Members & Roles
+              </h2>
+              <span className="text-xs text-gray-400">{squad.name}</span>
+            </div>
             <ul className="space-y-3 text-sm">
               {MEMBERS.map((m) => (
                 <li
@@ -252,9 +407,7 @@ export default function Squads() {
                     </span>
                   </label>
                   <button
-                    onClick={() =>
-                      setCommitments((cs) => cs.filter((x) => x.id !== c.id))
-                    }
+                    onClick={() => removeCommit(c.id)}
                     className={`text-xs px-2 py-1 rounded-lg ${FEATURE_BG} ${BORDER_COLOR} border hover:border-red-500 transition`}
                   >
                     Remove
@@ -309,15 +462,34 @@ export default function Squads() {
                 );
               })}
             </ul>
+
+            {/* Recent reminders list (read-only) */}
+            {recentReminders.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">
+                  Recent reminders
+                </h3>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  {recentReminders.map((r) => (
+                    <li key={r.id}>
+                      {r.name} · <span className="text-gray-500">{r.when}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </Card>
         </section>
 
         {/* Rituals & Resources */}
         <section className="grid lg:grid-cols-3 gap-6">
           <Card>
-            <h2 className="font-audiowide tracking-wider text-lg mb-4">
-              Squad Rituals
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-audiowide tracking-wider text-lg">
+                Squad Rituals
+              </h2>
+              <span className="text-xs text-gray-400">{squad.name}</span>
+            </div>
             <ul className="space-y-2 text-sm">
               {RITUALS.map((r) => (
                 <li
@@ -339,9 +511,17 @@ export default function Squads() {
           </Card>
 
           <Card>
-            <h2 className="font-audiowide tracking-wider text-lg mb-4">
-              Pinned Resources
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-audiowide tracking-wider text-lg">
+                Pinned Resources
+              </h2>
+              <button
+                onClick={addPin}
+                className="text-xs px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold transition"
+              >
+                Add
+              </button>
+            </div>
             <ul className="text-sm space-y-2">
               {pins.map((r) => (
                 <li

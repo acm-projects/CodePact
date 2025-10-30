@@ -26,7 +26,7 @@ export default function ProfilePage() {
       <GridOverlay />
       <LoggedInNavbar />
 
-      {/* ✅ Centered Gradient Header */}
+      {/*  Centered Gradient Header */}
       <section className="relative">
         <div
           className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
@@ -40,7 +40,7 @@ export default function ProfilePage() {
           </p>
         </div>
       </section>
-      {/* ✅ End Header */}
+      {/* End Header */}
 
       <main className="max-w-6xl mx-auto px-6 py-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -71,9 +71,8 @@ export default function ProfilePage() {
             </button>
           </section>
 
-          {/* Right: About + Preferences */}
+          {/* About Section */}
           <section className="lg:col-span-2 space-y-6">
-            {/* About Section */}
             <div
               className={`rounded-2xl p-6 ${FEATURE_BG} ${BORDER_COLOR} border`}
             >
@@ -118,7 +117,7 @@ export default function ProfilePage() {
   );
 }
 
-/* ---------- Subcomponents ---------- */
+/*  Subcomponents */
 function Row({ label, value }) {
   return (
     <div

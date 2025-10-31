@@ -1,4 +1,4 @@
-import type { SourceMapSegment } from './sourcemap-segment.cts';
+import type { SourceMapSegment } from './sourcemap-segment.d.cts';
 export interface SourceMapV3 {
     file?: string | null;
     names: readonly string[];

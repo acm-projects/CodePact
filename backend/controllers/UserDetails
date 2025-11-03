@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient } = require("mongodb");
 const uri = process.env.MONGO_API_KEY;
 let monServer;
 
@@ -11,11 +11,13 @@ async function connectMongo() {
 }
 
 exports.fetchCurrentUser = async (req, res) => {
-    if(!req.session.user)
-    {
-        return  res.status(401).send("User not logged in");
-    }
-    else{
-        return res.json({user: req.session.user,name:req.session.user.fullname});
-    }
-}
+  console.log("Hello World");
+  // if (!req.session.user) {
+  //   return res.status(401).send("User not logged in");
+  // } else {
+  //   return res.json({
+  //     user: req.session.user,
+  //     name: req.session.user.fullname,
+  //   });
+  // }
+};

@@ -10,6 +10,17 @@ import {
   GridOverlay,
 } from "../utils/constants";
 
+// Reusable card wrapper (define before use; function decl is hoisted but this keeps it clear)
+function Card({ children }) {
+  return (
+    <section
+      className={`rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-5 shadow-xl shadow-black/20`}
+    >
+      {children}
+    </section>
+  );
+}
+
 export default function Squads() {
   // --- Mock Data ---
   const MEMBERS = [
@@ -23,22 +34,15 @@ export default function Squads() {
     },
   ];
 
-  const RITUALS = [
-   
-  ];
+  const RITUALS = [];
 
-  const [commitments, setCommitments] = useState([
-   
-  ]);
+  const [commitments, setCommitments] = useState([]);
   const [newCommit, setNewCommit] = useState({
     memberId: MEMBERS[0].id,
     text: "",
   });
 
-  const [pins, setPins] = useState([
-    
-  ]);
-
+  const [pins, setPins] = useState([]);
   const [recentReminders, setRecentReminders] = useState([
     { id: "rr1", name: "Tharun", when: "15m ago" },
   ]);
@@ -84,13 +88,26 @@ export default function Squads() {
     );
   };
 
-  const addPin = () => {
-    const title = prompt("Title");
-    const url = prompt("URL");
-    if (title && url)
-      setPins((s) => [...s, { id: String(Date.now()), title, url, by: "You" }]);
-  };
+  // 🔌 Test your API from here
+  async function findGroup() {
+    try {
+      // If you configured Vite proxy as: proxy: { "/api": "http://localhost:3000" }
+      // then prefer: const res = await fetch("/api/getUserDetails");
+      const res = await fetch("/api/getUserDetails", {
+        credentials: "include", // harmless even if you don't need cookies
+      });
+      const data = await res.json();
+      console.log("getUserDetails:", res.status, data);
 
+      // TODO: set state with data you care about
+      // setPins(data.pins ?? []);
+      // setCommitments(data.commitments ?? []);
+    } catch (err) {
+      console.error("Error fetching groups:", err);
+    }
+  }
+
+  // ✅ Return the page JSX from the component (not from findGroup)
   return (
     <div
       className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}
@@ -117,6 +134,7 @@ export default function Squads() {
             <div className="flex items-center gap-2">
               <button
                 className={`px-4 py-2 rounded-xl ${FEATURE_BG} ${BORDER_COLOR} border hover:border-gray-500 text-sm font-medium transition`}
+                onClick={findGroup} // ✅ pass the function, not a string
               >
                 Manage Members
               </button>
@@ -173,7 +191,10 @@ export default function Squads() {
               <select
                 value={newCommit.memberId}
                 onChange={(e) =>
-                  setNewCommit((s) => ({ ...s, memberId: e.target.value }))
+                  setNewCommit((s) => ({
+                    ...s,
+                    memberId: Number(e.target.value),
+                  }))
                 }
                 className={`rounded-lg px-3 py-2 text-sm flex-1 ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
               >
@@ -331,9 +352,7 @@ export default function Squads() {
               Templates
             </h2>
             <ul className="space-y-2 text-sm">
-              {[
-               
-              ].map((t) => (
+              {[].map((t) => (
                 <li
                   key={t}
                   className={`flex items-center justify-between rounded-lg ${BACKGROUND_COLOR} ${BORDER_COLOR} border p-3`}
@@ -353,15 +372,5 @@ export default function Squads() {
 
       <Footer />
     </div>
-  );
-}
-
-function Card({ children }) {
-  return (
-    <section
-      className={`rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-5 shadow-xl shadow-black/20`}
-    >
-      {children}
-    </section>
   );
 }

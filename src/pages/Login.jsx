@@ -21,14 +21,45 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in:", { email, password, rememberMe });
+    setError("");
+    setLoading(true);
 
-    // ✅ Navigate to Leaderboard after login
-    navigate("/leaderboard");
+    try {
+      const res = await fetch("/api/sign-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        const msg =
+          data?.errors?.[0]?.msg ||
+          data?.message ||
+          "Login failed. Check your email and password.";
+        throw new Error(msg);
+      }
+
+      // ✅ Save token + user to localStorage OR sessionStorage
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem("cp_token", data.token);
+      storage.setItem("cp_user", JSON.stringify(data.user));
+
+      // ✅ Navigate to Leaderboard
+      navigate("/leaderboard");
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,6 +97,13 @@ export default function Login() {
               Access your collaborative job hunt dashboard.
             </p>
           </div>
+
+          {/* ✅ Error Message */}
+          {error && (
+            <div className="text-sm rounded-md p-3 mb-4 border border-red-700/40 bg-red-900/30 text-red-200">
+              {error}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -106,8 +144,8 @@ export default function Login() {
             </div>
 
             {/* Log In Button */}
-            <Button type="submit" widthClass="w-full">
-              LOG IN
+            <Button type="submit" widthClass="w-full" disabled={loading}>
+              {loading ? "LOGGING IN..." : "LOG IN"}
             </Button>
 
             {/* Sign Up Link */}

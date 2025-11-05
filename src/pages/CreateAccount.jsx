@@ -1,58 +1,88 @@
 // src/pages/CreateAccount.jsx
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import NavBar from "../components/NavBar.jsx";
 import Footer from "../components/Footer.jsx";
-import Button from "../components/Button.jsx";      // Primary Button component
-import FormInput from "../components/FormInput.jsx"; // Reusable Input component
+import Button from "../components/Button.jsx";
+import FormInput from "../components/FormInput.jsx";
 import {
-    BACKGROUND_COLOR, ACCENT_GRADIENT, FEATURE_BG, BORDER_COLOR, GridOverlay,
+  BACKGROUND_COLOR, ACCENT_GRADIENT, FEATURE_BG, BORDER_COLOR, GridOverlay,
 } from "../utils/constants.jsx";
-
 
 export default function CreateAccount() {
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "", 
+    firstName: "", lastName: "", email: "",
     password: "", confirmPassword: "", agreeToTerms: false
   });
-  
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  const showErrorMessage = (message) => {
-    // Placeholder for real error handling (e.g., a toast notification)
-    alert(message);
-  };
+  const showErrorMessage = (message) => setError(message);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
-  
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setError("");
+
+    if (!formData.agreeToTerms) {
+      return showErrorMessage("Please agree to the Terms and Privacy Policy.");
+    }
     if (formData.password !== formData.confirmPassword) {
-      showErrorMessage("Error: Passwords do not match.");
-      return;
+      return showErrorMessage("Passwords do not match.");
+    }
+    if (formData.password.length < 8) {
+      return showErrorMessage("Password must be at least 8 characters.");
     }
 
-    // Simulate account creation success
-    console.log("Attempting account activation...");
-    
-    // Navigate to the Congratulations page
-    setTimeout(() => {
-        navigate("/congratulations");
-    }, 500);
+    const name = `${formData.firstName} ${formData.lastName}`.trim();
+
+    try {
+      setLoading(true);
+      const res = await fetch("/api/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        const msg =
+          data?.errors?.[0]?.msg ||
+          (Array.isArray(data?.errors) ? JSON.stringify(data.errors) : data?.message) ||
+          "Registration failed. Please check your details.";
+        throw new Error(msg);
+      }
+
+      // ✅ Success: send them to Login to sign in
+      navigate("/login");
+
+      // 🔄 (Optional auto-login):
+      // localStorage.setItem("cp_token", data.token);
+      // localStorage.setItem("cp_user", JSON.stringify(data.user));
+      // navigate("/leaderboard");
+    } catch (err) {
+      showErrorMessage(err.message || "Registration failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}>
       <GridOverlay />
-      
+
       {/* Background Glows */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none z-0">
         <div className="absolute top-[-10rem] left-1/4 w-[50rem] h-[50rem] bg-fuchsia-500/10 rounded-full filter blur-3xl"></div>
@@ -61,13 +91,13 @@ export default function CreateAccount() {
       <NavBar />
 
       {/* Header Divider */}
-      <div className={`relative z-10 w-full mb-8`}>
-        <div className={`h-[2px] bg-gray-700 opacity-70`}></div>
+      <div className="relative z-10 w-full mb-8">
+        <div className="h-[2px] bg-gray-700 opacity-70"></div>
       </div>
 
       <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
         <div className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}>
-          
+
           <div className="text-center mb-8">
             <h1 className="text-3xl font-audiowide tracking-widest mb-2 uppercase">
               <span className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}>CREATE YOUR ACCOUNT</span>
@@ -77,8 +107,14 @@ export default function CreateAccount() {
             </p>
           </div>
 
+          {/* Error banner */}
+          {error && (
+            <div className="text-sm rounded-md p-3 mb-4 border border-red-700/40 bg-red-900/30 text-red-200">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            
             <div className="grid grid-cols-2 gap-4">
               <FormInput label="First Name" type="text" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="First name" />
               <FormInput label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Last name" />
@@ -88,7 +124,7 @@ export default function CreateAccount() {
 
             <FormInput label="Password" type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Create a password" />
             <p className="text-gray-400 text-xs mt-2 font-light">
-              Must be at least 8 characters with a number and special character
+              Must be at least 8 characters (we recommend adding a number and special character).
             </p>
 
             <FormInput label="Confirm Password" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm your password" />
@@ -111,15 +147,10 @@ export default function CreateAccount() {
               </label>
             </div>
 
-            {/* Primary CTA Button */}
-            <Button 
-              type="submit" 
-              widthClass="w-full" 
-            >
-              ACTIVATE ACCOUNT
+            <Button type="submit" widthClass="w-full" disabled={loading}>
+              {loading ? "CREATING..." : "ACTIVATE ACCOUNT"}
             </Button>
 
-            {/* Login Link */}
             <div className="text-center text-sm text-gray-400">
               Already have an account?{" "}
               <button

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Components
+import Navbar from "../components/nav/NavBar";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import FormInput from "../components/FormInput";
@@ -25,7 +26,6 @@ export default function Login() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Logging in:", { email, password, rememberMe });
-    // ✅ Navigate to Leaderboard after login
     navigate("/leaderboard");
   };
 
@@ -41,30 +41,11 @@ export default function Login() {
         <div className="absolute top-[-10rem] left-1/4 w-[50rem] h-[50rem] bg-fuchsia-500/10 rounded-full filter blur-3xl" />
       </div>
 
-      {/* Simple header (former NavBar was removed in merges) */}
-      <header className="relative z-10 w-full">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div
-              className={`w-8 h-8 ${ACCENT_GRADIENT} rounded-md flex items-center justify-center`}
-            >
-              <span className="font-bold">CP</span>
-            </div>
-            <span className="font-audiowide tracking-wide">CodePact</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate("/create-account")}
-            className="text-sm text-cyan-300 hover:text-cyan-200"
-          >
-            Create account
-          </button>
-        </div>
-        <div className="h-[2px] bg-gray-700 opacity-70" />
-      </header>
+      {/* Global NavBar (centered CODEPACT) */}
+      <Navbar />
 
       {/* Login Card */}
-      <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
+      <main className="max-w-xl mx-auto px-6 py-10 md:py-14 relative z-10 flex-grow">
         <div
           className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}
         >

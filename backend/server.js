@@ -1,3 +1,6 @@
+// ===== Dev helper (hash) =====
+const bcrypt = require('bcryptjs');
+
 // ===== Core & Env =====
 const path = require('path');
 const http = require('http');
@@ -94,18 +97,32 @@ function requireAuth(req, res, next) {
 
 // ===== Dev Auth Endpoints =====
 app.post('/api/auth/dev-login', async (req, res) => {
-  const { email, name } = req.body || {};
-  if (!email) return res.status(400).json({ success: false, error: 'email required' });
+  try {
+    const { email, name } = req.body || {};
+    if (!email) return res.status(400).json({ success: false, error: 'email required' });
 
-  let user = await User.findOne({ email: String(email).toLowerCase().trim() });
-  if (!user) user = await User.create({ email, fullname: name || email.split('@')[0] });
+    const normalized = String(email).toLowerCase().trim();
 
-  const token = signJwt(user);
-  setAuthCookie(res, token);
-  res.json({
-    success: true,
-    data: { _id: user._id, email: user.email, name: user.fullname || user.name }
-  });
+    let user = await User.findOne({ email: normalized });
+    if (!user) {
+      const passwordHash = await bcrypt.hash('dev-placeholder-password', 10); // ✅ satisfy schema
+      user = await User.create({
+        email: normalized,
+        fullname: name || normalized.split('@')[0],
+        passwordHash,
+      });
+    }
+
+    const token = signJwt(user);
+    setAuthCookie(res, token);
+    res.json({
+      success: true,
+      data: { _id: user._id, email: user.email, name: user.fullname || user.name }
+    });
+  } catch (e) {
+    console.error('dev-login error:', e);
+    res.status(500).json({ success: false, error: e.message || 'internal error' });
+  }
 });
 
 app.get('/api/auth/me', requireAuth, async (req, res) => {
@@ -141,25 +158,37 @@ app.get('/api/conversations/:id/messages', requireAuth, async (req, res) => {
 });
 
 app.post('/api/dev/seed-conv', requireAuth, async (req, res) => {
-  const { name, memberEmails = [] } = req.body || {};
-  const emails = Array.from(new Set([req.user.email, ...memberEmails])).map(e =>
-    String(e).toLowerCase().trim()
-  );
+  try {
+    const { name, memberEmails = [] } = req.body || {};
+    const emails = Array.from(new Set([req.user.email, ...memberEmails])).map(e =>
+      String(e).toLowerCase().trim()
+    );
 
-  const users = [];
-  for (const email of emails) {
-    let u = await User.findOne({ email });
-    if (!u) u = await User.create({ email, fullname: email.split('@')[0] });
-    users.push(u);
+    const users = [];
+    for (const email of emails) {
+      let u = await User.findOne({ email });
+      if (!u) {
+        const passwordHash = await bcrypt.hash('dev-placeholder-password', 10); // ✅ satisfy schema
+        u = await User.create({
+          email,
+          fullname: email.split('@')[0],
+          passwordHash,
+        });
+      }
+      users.push(u);
+    }
+
+    const conv = await Conversation.create({
+      name: name || 'New Conversation',
+      members: users.map(u => u._id),
+      lastMessageAt: new Date()
+    });
+
+    res.json({ success: true, data: conv });
+  } catch (e) {
+    console.error('seed-conv error:', e);
+    res.status(500).json({ success: false, error: e.message || 'internal error' });
   }
-
-  const conv = await Conversation.create({
-    name: name || 'New Conversation',
-    members: users.map(u => u._id),
-    lastMessageAt: new Date()
-  });
-
-  res.json({ success: true, data: conv });
 });
 
 // ===== Socket.IO Setup =====

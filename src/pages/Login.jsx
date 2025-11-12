@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Components
-import NavBar from "../components/NavBar";
+import Navbar from "../components/NavBar";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import FormInput from "../components/FormInput";
@@ -21,45 +21,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/sign-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data.success === false) {
-        const msg =
-          data?.errors?.[0]?.msg ||
-          data?.message ||
-          "Login failed. Check your email and password.";
-        throw new Error(msg);
-      }
-
-      // ✅ Save token + user to localStorage OR sessionStorage
-      const storage = rememberMe ? localStorage : sessionStorage;
-      storage.setItem("cp_token", data.token);
-      storage.setItem("cp_user", JSON.stringify(data.user));
-
-      // ✅ Navigate to Leaderboard
-      navigate("/leaderboard");
-    } catch (err) {
-      setError(err.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
+    console.log("Logging in:", { email, password, rememberMe });
+    navigate("/leaderboard");
   };
 
   return (
@@ -71,23 +38,26 @@ export default function Login() {
 
       {/* Background Glow */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none z-0">
-        <div className="absolute top-[-10rem] left-1/4 w-[50rem] h-[50rem] bg-fuchsia-500/10 rounded-full filter blur-3xl"></div>
+        <div className="absolute top-[-10rem] left-1/4 w-[50rem] h-[50rem] bg-fuchsia-500/10 rounded-full filter blur-3xl" />
       </div>
 
-      <NavBar />
-
-      {/* Header Divider */}
-      <div className="relative z-10 w-full mb-8">
-        <div className="h-[2px] bg-gray-700 opacity-70"></div>
-      </div>
+      {/* Global NavBar (centered CODEPACT) */}
+      <Navbar />
 
       {/* Login Card */}
-      <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
+      <main className="max-w-xl mx-auto px-6 py-10 md:py-14 relative z-10 flex-grow">
         <div
           className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}
         >
           {/* Header */}
           <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold mb-2">CodePact</h1>
+            <h2 className="text-lg text-gray-300 mb-1">
+              Login to Your Account
+            </h2>
+            <p className="text-gray-400 text-sm">
+              Continue your collaborative tech job hunt.
+            </p>
             <h1
               className={`text-3xl font-audiowide tracking-widest mb-2 uppercase bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
             >
@@ -97,13 +67,6 @@ export default function Login() {
               Access your collaborative job hunt dashboard.
             </p>
           </div>
-
-          {/* ✅ Error Message */}
-          {error && (
-            <div className="text-sm rounded-md p-3 mb-4 border border-red-700/40 bg-red-900/30 text-red-200">
-              {error}
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -144,13 +107,13 @@ export default function Login() {
             </div>
 
             {/* Log In Button */}
-            <Button type="submit" widthClass="w-full" disabled={loading}>
-              {loading ? "LOGGING IN..." : "LOG IN"}
+            <Button type="submit" widthClass="w-full">
+              LOG IN
             </Button>
 
             {/* Sign Up Link */}
             <div className="text-center text-sm text-gray-400">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <button
                 type="button"
                 onClick={() => navigate("/create-account")}

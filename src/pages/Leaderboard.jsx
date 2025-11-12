@@ -1,7 +1,14 @@
+// src/pages/Leaderboard.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
-import { BACKGROUND_COLOR, ACCENT_GRADIENT, FEATURE_BG, BORDER_COLOR, GridOverlay } from "../utils/constants";
+import {
+  BACKGROUND_COLOR,
+  ACCENT_GRADIENT,
+  FEATURE_BG,
+  BORDER_COLOR,
+  GridOverlay,
+} from "../utils/constants";
 
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState("Home");
@@ -16,11 +23,20 @@ export default function Leaderboard() {
     "Reminders & Notifications",
   ];
 
+  // Route map for cleaner navigation logic
+  const routeForTab = {
+    Home: "/leaderboard",
+    Squads: "/group-chat",
+    Messages: "/group-chat", //  Messages goes to Group Chat
+    "Public Forum": "/public-forum",
+    "AI Interviewer": "/ai-interviewer",
+    "Reminders & Notifications": "/reminders",
+  };
+
   const handleTabClick = (tab) => {
     setActiveTab(tab);
-    if (tab === "Home") navigate("/leaderboard");
-    else if (tab === "Squads") navigate("/group-chat");
-    else if (tab === "Public Forum") navigate("/public-forum");
+    const path = routeForTab[tab];
+    if (path) navigate(path);
   };
 
   return (
@@ -202,7 +218,9 @@ function ProgressBar({ label, value, max, color }) {
     <div className="mb-4">
       <div className="flex justify-between mb-1">
         <span className="text-gray-400 text-sm">{label}</span>
-        <span className="text-white font-semibold text-sm">{value}/{max}</span>
+        <span className="text-white font-semibold text-sm">
+          {value}/{max}
+        </span>
       </div>
       <div className="w-full bg-gray-700 rounded-full h-2">
         <div className={`${colorClass} h-2 rounded-full`} style={{ width: `${percent}%` }}></div>

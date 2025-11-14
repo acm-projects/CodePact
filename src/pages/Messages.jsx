@@ -10,38 +10,138 @@ import {
 } from "../utils/constants";
 
 export default function Messages() {
-  const [threads] = useState([
+  // 🔹 Conversations (threads)
+  const [threads, setThreads] = useState([
     {
       id: "t1",
       name: "Algorithm Avengers",
       last: "Standup @ 6p today?",
       unread: 2,
+      members: ["You", "Rafay", "Nabiha", "Tharun"],
     },
-    { id: "t2", name: "Rafay", last: "Pushed the fixes to navbar.", unread: 0 },
+    {
+      id: "t2",
+      name: "Rafay",
+      last: "Pushed the fixes to navbar.",
+      unread: 0,
+      members: ["You", "Rafay"],
+    },
     {
       id: "t3",
       name: "Nabiha",
       last: "Try constants in Welcome.jsx",
       unread: 1,
+      members: ["You", "Nabiha"],
     },
   ]);
+
   const [activeId, setActiveId] = useState("t1");
-  const [messages, setMessages] = useState([
-    { id: 1, who: "them", text: "Standup @ 6p today?" },
-    { id: 2, who: "me", text: "Works for me!" },
-  ]);
+
+  // 🔹 Messages stored per-thread
+  const [messagesByThread, setMessagesByThread] = useState({
+    t1: [
+      { id: 1, who: "them", text: "Standup @ 6p today?" },
+      { id: 2, who: "me", text: "Works for me!" },
+    ],
+    t2: [{ id: 3, who: "them", text: "Pushed the fixes to navbar." }],
+    t3: [{ id: 4, who: "them", text: "Try constants in Welcome.jsx" }],
+  });
+
   const [draft, setDraft] = useState("");
 
+  // 🔹 Modal state for "New" conversation
+  const [isNewOpen, setIsNewOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+
+  // 🔹 Modal state for "Add Member"
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newMember, setNewMember] = useState("");
+
   const activeThread = threads.find((t) => t.id === activeId);
+  const messages = activeId ? messagesByThread[activeId] || [] : [];
 
   const send = (e) => {
     e.preventDefault();
-    if (!draft.trim()) return;
-    setMessages((ms) => [
-      ...ms,
-      { id: Date.now(), who: "me", text: draft.trim() },
-    ]);
+    if (!draft.trim() || !activeId) return;
+
+    const text = draft.trim();
+    const newMessage = { id: Date.now(), who: "me", text };
+
+    setMessagesByThread((prev) => {
+      const existing = prev[activeId] || [];
+      return {
+        ...prev,
+        [activeId]: [...existing, newMessage],
+      };
+    });
+
+    // Update last message preview + clear unread on that thread
+    setThreads((prev) =>
+      prev.map((t) => (t.id === activeId ? { ...t, last: text, unread: 0 } : t))
+    );
+
     setDraft("");
+  };
+
+  // 🔹 "New" button handlers
+  const openNewModal = () => {
+    setNewName("");
+    setIsNewOpen(true);
+  };
+
+  const createNewConversation = (e) => {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) return;
+
+    const id = `t-${Date.now()}`;
+
+    setThreads((prev) => [
+      {
+        id,
+        name,
+        last: "",
+        unread: 0,
+        members: ["You", name],
+      },
+      ...prev,
+    ]);
+
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [id]: [],
+    }));
+
+    setActiveId(id);
+    setIsNewOpen(false);
+  };
+
+  // 🔹 "Add Member" handlers
+  const openAddMemberModal = () => {
+    if (!activeThread) return;
+    setNewMember("");
+    setIsAddOpen(true);
+  };
+
+  const handleAddMember = (e) => {
+    e.preventDefault();
+    const member = newMember.trim();
+    if (!member || !activeThread) return;
+
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === activeThread.id
+          ? {
+              ...t,
+              members: t.members?.includes(member)
+                ? t.members
+                : [...(t.members || []), member],
+            }
+          : t
+      )
+    );
+
+    setIsAddOpen(false);
   };
 
   return (
@@ -74,6 +174,7 @@ export default function Messages() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Conversations</h2>
               <button
+                onClick={openNewModal}
                 className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
               >
                 New
@@ -108,7 +209,7 @@ export default function Messages() {
                         )}
                       </div>
                       <div className="text-sm text-gray-400 truncate">
-                        {t.last}
+                        {t.last || "Start a conversation"}
                       </div>
                     </button>
                   </li>
@@ -121,13 +222,24 @@ export default function Messages() {
           <section
             className={`col-span-12 md:col-span-8 lg:col-span-9 rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-4 md:p-6`}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-audiowide tracking-wider">
-                {activeThread?.name ?? "Select a conversation"}
-              </h2>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-lg font-audiowide tracking-wider">
+                  {activeThread?.name ?? "Select a conversation"}
+                </h2>
+                {activeThread?.members && activeThread.members.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Members: {activeThread.members.join(", ")}
+                  </p>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <button
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+                  onClick={openAddMemberModal}
+                  disabled={!activeThread}
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT} ${
+                    !activeThread ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                 >
                   Add Member
                 </button>
@@ -142,6 +254,11 @@ export default function Messages() {
             <div
               className={`h-[48vh] md:h-[58vh] rounded-xl overflow-y-auto p-3 space-y-3 ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
             >
+              {messages.length === 0 && (
+                <p className="text-sm text-gray-500 text-center mt-4">
+                  No messages yet. Start the conversation below.
+                </p>
+              )}
               {messages.map((m) => (
                 <div
                   key={m.id}
@@ -166,11 +283,22 @@ export default function Messages() {
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Type a message…"
-                className={`flex-1 rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+                placeholder={
+                  activeThread ? "Type a message…" : "Select or create a chat…"
+                }
+                disabled={!activeThread}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border ${
+                  !activeThread ? "opacity-60 cursor-not-allowed" : ""
+                }`}
               />
               <button
-                className={`px-4 py-2 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+                type="submit"
+                disabled={!activeThread || !draft.trim()}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT} ${
+                  !activeThread || !draft.trim()
+                    ? "opacity-60 cursor-not-allowed"
+                    : ""
+                }`}
               >
                 Send
               </button>
@@ -180,6 +308,82 @@ export default function Messages() {
 
         <Footer />
       </main>
+
+      {/* New Conversation Modal */}
+      {isNewOpen && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
+          <div
+            className={`w-full max-w-md rounded-2xl p-6 ${FEATURE_BG} ${BORDER_COLOR} border`}
+          >
+            <h3 className="text-lg font-semibold mb-3">Start a New Chat</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              Who do you want to start a conversation with?
+            </p>
+            <form onSubmit={createNewConversation} className="space-y-4">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Name (e.g., Rafay, Algorithm Avengers)"
+                className={`w-full rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewOpen(false)}
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border hover:border-cyan-400/60`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🔹 Add Member Modal */}
+      {isAddOpen && activeThread && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
+          <div
+            className={`w-full max-w-md rounded-2xl p-6 ${FEATURE_BG} ${BORDER_COLOR} border`}
+          >
+            <h3 className="text-lg font-semibold mb-3">
+              Add Member to {activeThread.name}
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              Enter the name of the member you want to add.
+            </p>
+            <form onSubmit={handleAddMember} className="space-y-4">
+              <input
+                value={newMember}
+                onChange={(e) => setNewMember(e.target.value)}
+                placeholder="Member name"
+                className={`w-full rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddOpen(false)}
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border hover:border-cyan-400/60`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT}`}
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

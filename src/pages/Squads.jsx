@@ -23,7 +23,6 @@ export default function Squads() {
           role: "Owner",
           focus: "Apps (3/wk)",
           lastDays: 2,
-          lastType: "problem",
         },
         {
           id: 2,
@@ -31,7 +30,6 @@ export default function Squads() {
           role: "Member",
           focus: "DSA (5/wk)",
           lastDays: 8,
-          lastType: "application",
         },
         {
           id: 3,
@@ -39,7 +37,6 @@ export default function Squads() {
           role: "Member",
           focus: "Mocks (2/wk)",
           lastDays: 14,
-          lastType: "problem",
         },
         {
           id: 4,
@@ -47,27 +44,6 @@ export default function Squads() {
           role: "Member",
           focus: "Projects (1/wk)",
           lastDays: 1,
-          lastType: "interview",
-        },
-      ],
-      rituals: [
-        {
-          id: "r1",
-          title: "Daily Check-in",
-          when: "Everyday · 9:00 AM",
-          type: "standup",
-        },
-        {
-          id: "r2",
-          title: "Mock Interview",
-          when: "Wed · 6:00 PM",
-          type: "mock",
-        },
-        {
-          id: "r3",
-          title: "Weekly Retro",
-          when: "Sun · 7:00 PM",
-          type: "retro",
         },
       ],
       commitments: [
@@ -75,12 +51,9 @@ export default function Squads() {
         { id: 2, memberId: 2, text: "Solve 5 DSA problems", done: true },
         { id: 3, memberId: 3, text: "2 mock interviews", done: false },
       ],
-      pins: [
-        { id: "p1", title: "Resume master doc", url: "#", by: "Rafay" },
-        { id: "p2", title: "DSA sheet (Top 75)", url: "#", by: "Nabiha" },
-      ],
       recentReminders: [{ id: "rr1", name: "Tharun", when: "15m ago" }],
     },
+
     s2: {
       id: "s2",
       name: "DSA Grind",
@@ -91,7 +64,6 @@ export default function Squads() {
           role: "Owner",
           focus: "DSA (7/wk)",
           lastDays: 0,
-          lastType: "problem",
         },
         {
           id: 5,
@@ -99,7 +71,6 @@ export default function Squads() {
           role: "Member",
           focus: "System Design",
           lastDays: 9,
-          lastType: "interview",
         },
         {
           id: 6,
@@ -107,30 +78,15 @@ export default function Squads() {
           role: "Member",
           focus: "Apps (2/wk)",
           lastDays: 11,
-          lastType: "application",
-        },
-      ],
-      rituals: [
-        {
-          id: "r4",
-          title: "LeetCode Sprint",
-          when: "Tue · 8:00 PM",
-          type: "practice",
-        },
-        {
-          id: "r5",
-          title: "Whiteboard Friday",
-          when: "Fri · 5:00 PM",
-          type: "mock",
         },
       ],
       commitments: [
         { id: 11, memberId: 1, text: "Finish DP playlist", done: false },
         { id: 12, memberId: 5, text: "1 sys-design outline", done: false },
       ],
-      pins: [{ id: "p3", title: "Neetcode patterns", url: "#", by: "Ishan" }],
       recentReminders: [],
     },
+
     s3: {
       id: "s3",
       name: "Project Builders",
@@ -141,24 +97,12 @@ export default function Squads() {
           role: "Owner",
           focus: "Projects (2/wk)",
           lastDays: 3,
-          lastType: "project",
         },
-        {
-          id: 7,
-          name: "Ava",
-          role: "Member",
-          focus: "Docs & QA",
-          lastDays: 5,
-          lastType: "project",
-        },
-      ],
-      rituals: [
-        { id: "r6", title: "Demo Day", when: "Sat · 4:00 PM", type: "demo" },
+        { id: 7, name: "Ava", role: "Member", focus: "Docs & QA", lastDays: 5 },
       ],
       commitments: [
         { id: 21, memberId: 7, text: "Write README and tests", done: false },
       ],
-      pins: [{ id: "p4", title: "API checklist", url: "#", by: "Ava" }],
       recentReminders: [],
     },
   };
@@ -169,9 +113,7 @@ export default function Squads() {
   // --- Derived for convenience ---
   const squad = squads[selectedSquadId];
   const MEMBERS = squad.members;
-  const RITUALS = squad.rituals;
   const commitments = squad.commitments;
-  const pins = squad.pins;
   const recentReminders = squad.recentReminders;
 
   // --- UI state for "add commitment" input ---
@@ -183,14 +125,8 @@ export default function Squads() {
   // --- Helpers ---
   const INACTIVE_DAYS = 7;
   const isInactive = (days) => days >= INACTIVE_DAYS;
-  const typeLabel = (t) =>
-    t === "application"
-      ? "Applications"
-      : t === "problem"
-      ? "Problems"
-      : t === "interview"
-      ? "Mock Interviews"
-      : "Activity";
+
+  const completedCount = commitments.filter((c) => c.done).length;
 
   // --- Mutators that are squad-aware ---
   const updateSquad = (updater) =>
@@ -210,6 +146,7 @@ export default function Squads() {
   const addCommit = (e) => {
     e.preventDefault();
     if (!newCommit.text.trim()) return;
+
     updateSquad((cur) => ({
       ...cur,
       commitments: [
@@ -222,6 +159,7 @@ export default function Squads() {
         },
       ],
     }));
+
     setNewCommit({ memberId: MEMBERS[0]?.id ?? 0, text: "" });
   };
 
@@ -240,18 +178,6 @@ export default function Squads() {
       ].slice(0, 5),
     }));
 
-  const addPin = () => {
-    const title = prompt("Title");
-    const url = prompt("URL");
-    if (title && url) {
-      updateSquad((cur) => ({
-        ...cur,
-        pins: [...cur.pins, { id: String(Date.now()), title, url, by: "You" }],
-      }));
-    }
-  };
-
-  // When switching squads, keep the add-commit select pointing to a valid member
   const onChangeSquad = (e) => {
     const nextId = e.target.value;
     setSelectedSquadId(nextId);
@@ -267,7 +193,7 @@ export default function Squads() {
       <LoggedInNavbar />
 
       {/* Hero */}
-      <section className="relative mb-10">
+      <section className="relative mb-6">
         <div
           className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
         />
@@ -314,11 +240,27 @@ export default function Squads() {
         </div>
       </section>
 
+      {/* At-a-glance metrics */}
+      <section className="max-w-7xl mx-auto px-6 mb-8">
+        <div
+          className={`grid grid-cols-2 md:grid-cols-4 gap-3 rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-4 text-xs md:text-sm`}
+        >
+          <Metric label="Members" value={MEMBERS.length} />
+          <Metric label="Commitments" value={commitments.length} />
+          <Metric
+            label="Completed"
+            value={`${completedCount}/${commitments.length || 0}`}
+          />
+          <Metric label="Recent nudges" value={recentReminders.length} />
+        </div>
+      </section>
+
       {/* Main */}
       <main className="max-w-7xl mx-auto px-6 pb-12 space-y-8">
-        {/* Top Grid */}
-        <section className="grid lg:grid-cols-3 gap-6">
-          <Card>
+        {/* Row 1: Members (1 col) + Weekly Commitments (2 cols) */}
+        <section className="grid lg:grid-cols-3 gap-8">
+          {/* Members & Roles – narrow column on desktop */}
+          <Card className="lg:col-span-1">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-audiowide tracking-wider text-lg">
                 Members & Roles
@@ -347,8 +289,8 @@ export default function Squads() {
             </ul>
           </Card>
 
-          {/* Commitments */}
-          <Card>
+          {/* Weekly Commitments – wide column on desktop */}
+          <Card className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-audiowide tracking-wider text-lg">
                 Weekly Commitments
@@ -358,13 +300,16 @@ export default function Squads() {
               </span>
             </div>
 
-            <form onSubmit={addCommit} className="flex gap-2 mb-4">
+            <form
+              onSubmit={addCommit}
+              className="flex flex-col md:flex-row gap-2 mb-4"
+            >
               <select
                 value={newCommit.memberId}
                 onChange={(e) =>
                   setNewCommit((s) => ({ ...s, memberId: e.target.value }))
                 }
-                className={`rounded-lg px-3 py-2 text-sm flex-1 ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+                className={`rounded-lg px-3 py-2 text-sm md:flex-1 ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
               >
                 {MEMBERS.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -377,7 +322,7 @@ export default function Squads() {
                 onChange={(e) =>
                   setNewCommit((s) => ({ ...s, text: e.target.value }))
                 }
-                className={`rounded-lg px-3 py-2 text-sm flex-[2] ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
+                className={`rounded-lg px-3 py-2 text-sm md:flex-[2] ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
                 placeholder="e.g., Apply to 3 roles"
               />
               <button className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold transition">
@@ -416,8 +361,10 @@ export default function Squads() {
               ))}
             </ul>
           </Card>
+        </section>
 
-          {/* Nudge Center */}
+        {/* Row 2: Nudge Center full width */}
+        <section>
           <Card>
             <h2 className="font-audiowide tracking-wider text-lg mb-4">
               Nudge Center
@@ -463,9 +410,8 @@ export default function Squads() {
               })}
             </ul>
 
-            {/* Recent reminders list (read-only) */}
             {recentReminders.length > 0 && (
-              <div className="mt-4">
+              <div className="mt-5">
                 <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">
                   Recent reminders
                 </h3>
@@ -480,91 +426,6 @@ export default function Squads() {
             )}
           </Card>
         </section>
-
-        {/* Rituals & Resources */}
-        <section className="grid lg:grid-cols-3 gap-6">
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-audiowide tracking-wider text-lg">
-                Squad Rituals
-              </h2>
-              <span className="text-xs text-gray-400">{squad.name}</span>
-            </div>
-            <ul className="space-y-2 text-sm">
-              {RITUALS.map((r) => (
-                <li
-                  key={r.id}
-                  className={`flex items-center justify-between rounded-lg ${BACKGROUND_COLOR} ${BORDER_COLOR} border p-3`}
-                >
-                  <div>
-                    <div className="font-semibold">{r.title}</div>
-                    <div className="text-gray-400">{r.when}</div>
-                  </div>
-                  <button
-                    className={`text-xs px-2 py-1 rounded-lg ${FEATURE_BG} ${BORDER_COLOR} border hover:border-blue-500 transition`}
-                  >
-                    Notify Squad
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-audiowide tracking-wider text-lg">
-                Pinned Resources
-              </h2>
-              <button
-                onClick={addPin}
-                className="text-xs px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold transition"
-              >
-                Add
-              </button>
-            </div>
-            <ul className="text-sm space-y-2">
-              {pins.map((r) => (
-                <li
-                  key={r.id}
-                  className={`group flex items-center justify-between rounded-lg ${BACKGROUND_COLOR} ${BORDER_COLOR} border p-3 hover:border-blue-500/60 transition`}
-                >
-                  <a
-                    href={r.url}
-                    className="text-blue-400 underline group-hover:text-blue-300"
-                  >
-                    {r.title}
-                  </a>
-                  <span className="text-gray-500 font-light">by {r.by}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card>
-            <h2 className="font-audiowide tracking-wider text-lg mb-4">
-              Templates
-            </h2>
-            <ul className="space-y-2 text-sm">
-              {[
-                "Weekly plan: Apps + DSA + Mock",
-                "Post-mock debrief checklist",
-                "Application tracker CSV",
-              ].map((t) => (
-                <li
-                  key={t}
-                  className={`flex items-center justify-between rounded-lg ${BACKGROUND_COLOR} ${BORDER_COLOR} border p-3`}
-                >
-                  <span>{t}</span>
-                  <button
-                    className={`text-xs px-2 py-1 rounded-lg ${FEATURE_BG} ${BORDER_COLOR} border hover:border-blue-500 transition`}
-                  >
-                    Use
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
       </main>
 
       <Footer />
@@ -572,12 +433,37 @@ export default function Squads() {
   );
 }
 
-function Card({ children }) {
+/* ------------------------------
+   Reusable components
+--------------------------------*/
+
+function Card({ children, className = "" }) {
   return (
     <section
-      className={`rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-5 shadow-xl shadow-black/20`}
+      className={`
+        rounded-2xl 
+        ${FEATURE_BG} 
+        border border-purple-500/30
+        p-8
+        shadow-xl 
+        shadow-black/30
+        transition
+        hover:border-purple-400/60
+        ${className}
+      `}
     >
       {children}
     </section>
+  );
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="flex flex-col rounded-xl border border-white/5 bg-black/20 px-3 py-2">
+      <span className="text-[11px] uppercase tracking-wider text-gray-400">
+        {label}
+      </span>
+      <span className="mt-1 text-base font-semibold">{value}</span>
+    </div>
   );
 }

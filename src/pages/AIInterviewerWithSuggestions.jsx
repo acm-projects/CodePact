@@ -72,7 +72,6 @@ export default function AIInterviewerWithSuggestions() {
       time: "2 min ago",
     },
   ]);
-  const [msg, setMsg] = useState("");
 
   const PER_QUESTION_SECONDS = 6 * 60;
   const [remaining, setRemaining] = useState(PER_QUESTION_SECONDS);
@@ -108,16 +107,25 @@ export default function AIInterviewerWithSuggestions() {
     });
   };
 
-  const pushChat = (role, text) =>
-    setChat((c) => [...c, { role, text, time: "now" }]);
+  const pushChat = (msgRole, text) =>
+    setChat((c) => [...c, { role: msgRole, text, time: "now" }]);
 
-  const onPickSuggestion = (text) => pushChat("ai", text);
+  // 🔹 Suggested questions are for the interviewer, so treat them as interviewer messages
+  const onPickSuggestion = (text) => {
+    const senderRole = role === "interviewer" ? "interviewer" : "candidate";
+    pushChat(senderRole, text);
+  };
 
-  const send = (t) => {
-    const text = t?.trim?.() ?? msg.trim();
-    if (!text) return;
-    pushChat("user", text);
-    setMsg("");
+  // 👇 This is what ChatInput calls with the raw text
+  const send = (raw) => {
+    if (typeof raw !== "string") raw = "";
+
+    // Collapse ALL whitespace (spaces, newlines, tabs) into single spaces
+    const cleaned = raw.replace(/\s+/g, " ").trim();
+    if (!cleaned) return;
+
+    const senderRole = role === "interviewer" ? "interviewer" : "candidate";
+    pushChat(senderRole, cleaned);
   };
 
   return (
@@ -166,16 +174,18 @@ export default function AIInterviewerWithSuggestions() {
           >
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col p-4">
               {chat.map((m, i) => (
-                <ChatBubble key={i} role={m.role} text={m.text} time={m.time} />
+                <ChatBubble
+                  key={i}
+                  role={m.role}
+                  text={m.text}
+                  time={m.time}
+                  isOwn={m.role === "interviewer"}
+                />
               ))}
             </div>
             <div className={`${BORDER_COLOR} border-t`}>
-              <ChatInput
-                value={msg}
-                onChange={setMsg}
-                onSubmit={send}
-                placeholder="Type your message..."
-              />
+              {/* ChatInput manages its own internal msg; we just get text via onSend */}
+              <ChatInput onSend={send} placeholder="Type your message..." />
             </div>
           </Panel>
         </div>

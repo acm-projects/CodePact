@@ -1,7 +1,7 @@
 // src/pages/Welcome.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/NavBar";
+import Navbar from "../components/nav/NavBar";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import {

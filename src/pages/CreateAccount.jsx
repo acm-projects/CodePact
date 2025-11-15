@@ -1,86 +1,65 @@
 // src/pages/CreateAccount.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import NavBar from "../components/NavBar.jsx";
-import Footer from "../components/Footer.jsx";
-import Button from "../components/Button.jsx";
-import FormInput from "../components/FormInput.jsx";
+import NavBar from "../components/nav/NavBar";
+import Footer from "../components/Footer";
+import Button from "../components/Button"; // Primary Button component
+import FormInput from "../components/FormInput.jsx"; // Reusable Input component
 import {
-  BACKGROUND_COLOR, ACCENT_GRADIENT, FEATURE_BG, BORDER_COLOR, GridOverlay,
-} from "../utils/constants.jsx";
+  BACKGROUND_COLOR,
+  ACCENT_GRADIENT,
+  FEATURE_BG,
+  BORDER_COLOR,
+  GridOverlay,
+} from "../utils/constants";
 
 export default function CreateAccount() {
   const [formData, setFormData] = useState({
-    firstName: "", lastName: "", email: "",
-    password: "", confirmPassword: "", agreeToTerms: false
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    agreeToTerms: false,
   });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const showErrorMessage = (message) => setError(message);
+  const showErrorMessage = (message) => {
+    // Placeholder for real error handling (e.g., a toast notification)
+    alert(message);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError("");
 
-    if (!formData.agreeToTerms) {
-      return showErrorMessage("Please agree to the Terms and Privacy Policy.");
-    }
     if (formData.password !== formData.confirmPassword) {
-      return showErrorMessage("Passwords do not match.");
-    }
-    if (formData.password.length < 8) {
-      return showErrorMessage("Password must be at least 8 characters.");
+      showErrorMessage("Error: Passwords do not match.");
+      return;
     }
 
-    const name = `${formData.firstName} ${formData.lastName}`.trim();
+    // Simulate account creation success
+    console.log("Attempting account activation...");
 
-    try {
-      setLoading(true);
-      const res = await fetch("/api/create-user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data.success === false) {
-        const msg =
-          data?.errors?.[0]?.msg ||
-          (Array.isArray(data?.errors) ? JSON.stringify(data.errors) : data?.message) ||
-          "Registration failed. Please check your details.";
-        throw new Error(msg);
-      }
-
-      // ✅ Success: send them to Login to sign in
-      navigate("/login");
-
-      // 🔄 (Optional auto-login):
-      // localStorage.setItem("cp_token", data.token);
-      // localStorage.setItem("cp_user", JSON.stringify(data.user));
-      // navigate("/leaderboard");
-    } catch (err) {
-      showErrorMessage(err.message || "Registration failed.");
-    } finally {
-      setLoading(false);
-    }
+    // Navigate to the Congratulations page
+    setTimeout(() => {
+      navigate("/congratulations");
+    }, 500);
   };
 
   return (
-    <div className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}>
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand`}
+    >
       <GridOverlay />
 
       {/* Background Glows */}
@@ -91,43 +70,76 @@ export default function CreateAccount() {
       <NavBar />
 
       {/* Header Divider */}
-      <div className="relative z-10 w-full mb-8">
-        <div className="h-[2px] bg-gray-700 opacity-70"></div>
+      <div className={`relative z-10 w-full mb-8`}>
+        <div className={`h-[2px] bg-gray-700 opacity-70`}></div>
       </div>
 
       <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
-        <div className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}>
-
+        <div
+          className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-6 sm:p-10 shadow-2xl shadow-fuchsia-900/50`}
+        >
           <div className="text-center mb-8">
             <h1 className="text-3xl font-audiowide tracking-widest mb-2 uppercase">
-              <span className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}>CREATE YOUR ACCOUNT</span>
+              <span
+                className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}
+              >
+                CREATE YOUR ACCOUNT
+              </span>
             </h1>
             <p className="text-gray-400 text-sm font-light">
               Step into the future of job hunting — together.
             </p>
           </div>
 
-          {/* Error banner */}
-          {error && (
-            <div className="text-sm rounded-md p-3 mb-4 border border-red-700/40 bg-red-900/30 text-red-200">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <FormInput label="First Name" type="text" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="First name" />
-              <FormInput label="Last Name" type="text" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Last name" />
+              <FormInput
+                label="First Name"
+                type="text"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                placeholder="First name"
+              />
+              <FormInput
+                label="Last Name"
+                type="text"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                placeholder="Last name"
+              />
             </div>
 
-            <FormInput label="Email" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email" />
+            <FormInput
+              label="Email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+            />
 
-            <FormInput label="Password" type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Create a password" />
+            <FormInput
+              label="Password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Create a password"
+            />
             <p className="text-gray-400 text-xs mt-2 font-light">
-              Must be at least 8 characters (we recommend adding a number and special character).
+              Must be at least 8 characters with a number and special character
             </p>
 
-            <FormInput label="Confirm Password" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm your password" />
+            <FormInput
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Confirm your password"
+            />
 
             {/* Terms and Conditions */}
             <div className="flex items-start space-x-3 pt-2">
@@ -141,16 +153,28 @@ export default function CreateAccount() {
               />
               <label className="text-sm text-gray-300 font-light">
                 I agree to the{" "}
-                <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Terms of Service</a>{" "}
+                <a
+                  href="#"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  Terms of Service
+                </a>{" "}
                 and{" "}
-                <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Privacy Policy</a>
+                <a
+                  href="#"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  Privacy Policy
+                </a>
               </label>
             </div>
 
-            <Button type="submit" widthClass="w-full" disabled={loading}>
-              {loading ? "CREATING..." : "ACTIVATE ACCOUNT"}
+            {/* Primary CTA Button */}
+            <Button type="submit" widthClass="w-full">
+              ACTIVATE ACCOUNT
             </Button>
 
+            {/* Login Link */}
             <div className="text-center text-sm text-gray-400">
               Already have an account?{" "}
               <button

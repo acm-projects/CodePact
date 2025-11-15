@@ -1,10 +1,5 @@
 // src/App.jsx
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ActivityProvider } from "./components/activity/ActivityContext";
 
 // Core pages
@@ -32,54 +27,52 @@ import InterviewHistory from "./pages/InterviewHistory.jsx";
 export default function App() {
   return (
     <ActivityProvider>
-      <Router>
-        <div className="min-h-screen bg-[#0f0f23] text-white">
-          <Routes>
-            {/* Auth / Landing */}
-            <Route path="/" element={<Welcome />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/create-account" element={<CreateAccount />} />
-            <Route path="/congratulations" element={<Congratulations />} />
+      <div className="min-h-screen bg-[#0f0f23] text-white">
+        <Routes>
+          {/* Auth / Landing */}
+          <Route path="/" element={<Welcome />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/create-account" element={<CreateAccount />} />
+          <Route path="/congratulations" element={<Congratulations />} />
 
-            {/* App */}
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/public-forum" element={<Forum />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/reminders" element={<RemindersPage />} />
-            <Route path="/squads" element={<Squads />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/group-creation" element={<GroupCreation />} />
+          {/* App */}
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/public-forum" element={<Forum />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/reminders" element={<RemindersPage />} />
+          <Route path="/squads" element={<Squads />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/group-creation" element={<GroupCreation />} />
 
-            {/* AI Interviewer */}
-            <Route path="/interview" element={<AIInterviewerLanding />} />
-            <Route path="/interview/session" element={<AIInterviewerBasic />} />
-            <Route
-              path="/interview/session/suggestions"
-              element={<AIInterviewerWithSuggestions />}
-            />
-            <Route
-              path="/interview/session/interviewee"
-              element={<AIIntervieweeSession />}
-            />
-            <Route path="/interview/feedback" element={<InterviewFeedback />} />
-            <Route path="/interview/history" element={<InterviewHistory />} />
+          {/* AI Interviewer */}
+          <Route path="/interview" element={<AIInterviewerLanding />} />
+          <Route path="/interview/session" element={<AIInterviewerBasic />} />
+          <Route
+            path="/interview/session/suggestions"
+            element={<AIInterviewerWithSuggestions />}
+          />
+          <Route
+            path="/interview/session/interviewee"
+            element={<AIIntervieweeSession />}
+          />
+          <Route path="/interview/feedback" element={<InterviewFeedback />} />
+          <Route path="/interview/history" element={<InterviewHistory />} />
 
-            {/* Legacy redirects from older nav labels */}
-            <Route
-              path="/ai-interviewer"
-              element={<Navigate to="/interview" replace />}
-            />
-            <Route
-              path="/group-chat"
-              element={<Navigate to="/messages" replace />}
-            />
+          {/* Legacy redirects from older nav labels */}
+          <Route
+            path="/ai-interviewer"
+            element={<Navigate to="/interview" replace />}
+          />
+          <Route
+            path="/group-chat"
+            element={<Navigate to="/messages" replace />}
+          />
 
-            {/* 404 */}
-            <Route path="*" element={<div className="p-6">Not Found</div>} />
-          </Routes>
-        </div>
-      </Router>
+          {/* 404 */}
+          <Route path="*" element={<div className="p-6">Not Found</div>} />
+        </Routes>
+      </div>
     </ActivityProvider>
   );
 }

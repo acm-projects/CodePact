@@ -137,13 +137,15 @@
     </section>
   </main>
 
-  <!-- Small settings for backend URL (defaults to same-origin) -->
+  <!-- Small settings for backend URL -->
   <div class="settings">
     <button id="gear" class="gear">⚙️</button>
     <div id="settingsCard" class="card hidden">
       <div style="font-weight:700;margin-bottom:6px">Backend Base URL</div>
-      <input id="backend" placeholder="(optional) e.g. http://localhost:8000" />
-      <div class="status" style="margin-top:6px">Leave blank to use same origin.</div>
+      <input id="backend" placeholder="e.g. http://localhost:8000" />
+      <div class="status" style="margin-top:6px">
+        Defaults to <code>http://localhost:8000</code>. Change if your backend runs elsewhere.
+      </div>
     </div>
   </div>
 
@@ -152,9 +154,10 @@
   <script>
     // ===== Config =====
     const backendInput = document.getElementById('backend');
-    const savedBase = localStorage.getItem('cp_backend_base') || '';
+    const DEFAULT_BACKEND = 'http://localhost:8000';
+    const savedBase = localStorage.getItem('cp_backend_base') || DEFAULT_BACKEND;
     backendInput.value = savedBase;
-    const BASE = () => (backendInput.value.trim() || window.location.origin).replace(/\/$/, '');
+    const BASE = () => (backendInput.value.trim() || DEFAULT_BACKEND).replace(/\/$/, '');
 
     // UI els
     const els = {
@@ -178,8 +181,17 @@
     const linkify = (s)=> s.replace(/(https?:\/\/[^\s]+)/g, (u)=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
     const fmtTime = (ts)=> { try { return new Date(ts).toLocaleTimeString(); } catch { return '' } };
 
-    function setStatus(t, ok){ els.netStatus.textContent = t; els.netStatus.style.color = ok===true ? '#2ecc71' : (ok===false ? '#ff6b6b' : 'var(--muted)'); }
-    function saveBase(){ localStorage.setItem('cp_backend_base', backendInput.value.trim()); }
+    function setStatus(t, ok){
+      els.netStatus.textContent = t;
+      els.netStatus.style.color =
+        ok === true ? '#2ecc71' :
+        ok === false ? '#ff6b6b' :
+        'var(--muted)';
+    }
+
+    function saveBase(){
+      localStorage.setItem('cp_backend_base', backendInput.value.trim());
+    }
 
     function renderConversations(list){
       els.conversations.innerHTML = '';
@@ -213,7 +225,9 @@
       const meta = document.createElement('div'); meta.className = 'status'; meta.textContent = fmtTime(m.createdAt || Date.now());
       content.appendChild(name); content.appendChild(text); content.appendChild(meta);
       row.appendChild(pfp); row.appendChild(content);
-      els.messages.appendChild(row); els.messages.scrollTop = els.messages.scrollHeight; lastLoadedMessageId = m._id || lastLoadedMessageId;
+      els.messages.appendChild(row);
+      els.messages.scrollTop = els.messages.scrollHeight;
+      lastLoadedMessageId = m._id || lastLoadedMessageId;
     }
 
     async function api(path){
@@ -224,7 +238,8 @@
 
     async function loadMe(){
       const { data } = await api('/api/auth/me');
-      userId = data._id; els.userName.textContent = data.name || data.email || 'Me';
+      userId = data._id;
+      els.userName.textContent = data.name || data.email || 'Me';
     }
 
     async function loadConversations(){
@@ -238,12 +253,14 @@
 
     async function selectConversation(conv){
       if(currentConv === conv._id) return;
-      currentConv = conv._id; localStorage.setItem('cp_last_conv', currentConv);
+      currentConv = conv._id;
+      localStorage.setItem('cp_last_conv', currentConv);
       document.querySelectorAll('.conv').forEach(n=> n.classList.remove('active'));
       // Update title and members (optional endpoint below uses populated members)
       els.roomTitle.textContent = conv.name || 'Conversation';
       if(conv.members) renderMembers(conv.members); else renderMembers([]);
-      els.messages.innerHTML = ''; lastLoadedMessageId = null;
+      els.messages.innerHTML = '';
+      lastLoadedMessageId = null;
       if(socket && socket.connected) socket.emit('conversation:join', { conversationId: currentConv });
       await fetchHistory(true);
     }
@@ -266,31 +283,47 @@
       socket.on('typing', ({ userId: uid, isTyping, conversationId })=>{
         if(conversationId!==currentConv || uid===userId) return;
         els.typingBar.textContent = isTyping ? 'Someone is typing…' : '';
-        if(isTyping){ clearTimeout(typingTimer); typingTimer = setTimeout(()=> els.typingBar.textContent='', 1500); }
+        if(isTyping){
+          clearTimeout(typingTimer);
+          typingTimer = setTimeout(()=> els.typingBar.textContent='', 1500);
+        }
       });
       socket.connect();
     }
 
     // send
     els.sendForm.addEventListener('submit', (e)=>{
-      e.preventDefault(); if(!socket||!socket.connected) return setStatus('Connect first', false);
+      e.preventDefault();
+      if(!socket || !socket.connected) return setStatus('Connect first', false);
       if(!currentConv) return setStatus('Pick a conversation', false);
-      const text = els.msgInput.value.trim(); if(!text) return;
+      const text = els.msgInput.value.trim();
+      if(!text) return;
       const tempId = crypto.randomUUID();
       addMessage({ _id: tempId, tempId, sender: 'me', text, createdAt: new Date().toISOString() });
-      socket.emit('message:send', { conversationId: currentConv, text, tempId }, (ack)=>{ if(!ack?.ok){ setStatus('send failed: '+(ack?.error||'unknown'), false); }});
+      socket.emit('message:send', { conversationId: currentConv, text, tempId }, (ack)=>{
+        if(!ack?.ok){
+          setStatus('send failed: '+(ack?.error||'unknown'), false);
+        }
+      });
       els.msgInput.value='';
     });
 
     els.msgInput.addEventListener('input', ()=>{
       if(!socket||!socket.connected||!currentConv) return;
       socket.emit('typing', { conversationId: currentConv, isTyping:true });
-      clearTimeout(typingTimer); typingTimer = setTimeout(()=> socket.emit('typing', { conversationId: currentConv, isTyping:false }), 1200);
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(()=> socket.emit('typing', { conversationId: currentConv, isTyping:false }), 1200);
     });
 
     // settings toggle
-    els.gear.addEventListener('click', ()=>{ els.settingsCard.classList.toggle('hidden'); });
-    backendInput.addEventListener('change', ()=>{ saveBase(); location.reload(); });
+    els.gear.addEventListener('click', ()=>{
+      els.settingsCard.classList.toggle('hidden');
+    });
+
+    backendInput.addEventListener('change', ()=>{
+      saveBase();
+      location.reload();
+    });
 
     // ===== Boot =====
     (async function boot(){
@@ -299,7 +332,10 @@
         connectSocket();
         await loadConversations();
         setStatus('Ready');
-      }catch(e){ setStatus('Auth required or server down', false); }
+      }catch(e){
+        console.error(e);
+        setStatus('Auth required or server down', false);
+      }
     })();
   </script>
 </body>

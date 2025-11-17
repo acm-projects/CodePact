@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LoggedInNavbar from "../components/nav/LoggedInNavBar";
 import Footer from "../components/Footer";
 import {
@@ -8,140 +8,351 @@ import {
   ACCENT_GRADIENT,
   GridOverlay,
 } from "../utils/constants";
+import { initSocket, getSocket } from "../socket";
+
+const API_BASE = "http://localhost:8000";
 
 export default function Messages() {
-  // 🔹 Conversations (threads)
-  const [threads, setThreads] = useState([
-    {
-      id: "t1",
-      name: "Algorithm Avengers",
-      last: "Standup @ 6p today?",
-      unread: 2,
-      members: ["You", "Rafay", "Nabiha", "Tharun"],
-    },
-    {
-      id: "t2",
-      name: "Rafay",
-      last: "Pushed the fixes to navbar.",
-      unread: 0,
-      members: ["You", "Rafay"],
-    },
-    {
-      id: "t3",
-      name: "Nabiha",
-      last: "Try constants in Welcome.jsx",
-      unread: 1,
-      members: ["You", "Nabiha"],
-    },
-  ]);
-
-  const [activeId, setActiveId] = useState("t1");
-
-  // 🔹 Messages stored per-thread
-  const [messagesByThread, setMessagesByThread] = useState({
-    t1: [
-      { id: 1, who: "them", text: "Standup @ 6p today?" },
-      { id: 2, who: "me", text: "Works for me!" },
-    ],
-    t2: [{ id: 3, who: "them", text: "Pushed the fixes to navbar." }],
-    t3: [{ id: 4, who: "them", text: "Try constants in Welcome.jsx" }],
-  });
-
+  const [threads, setThreads] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [messagesByThread, setMessagesByThread] = useState({});
   const [draft, setDraft] = useState("");
 
-  // 🔹 Modal state for "New" conversation
+  // Modals
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
-
-  // 🔹 Modal state for "Add Member"
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newMember, setNewMember] = useState("");
+
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [loadingConvs, setLoadingConvs] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState("");
 
   const activeThread = threads.find((t) => t.id === activeId);
   const messages = activeId ? messagesByThread[activeId] || [] : [];
 
+  // 1) Fetch current user + init socket
+  useEffect(() => {
+    initSocket();
+
+    async function fetchMe() {
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCurrentUserId(data.data?._id || data.user?._id);
+        }
+      } catch (e) {
+        console.warn("auth/me error:", e);
+      }
+    }
+
+    fetchMe();
+  }, []);
+
+  // 2) Fetch conversations (with populated members)
+  useEffect(() => {
+    async function fetchConversations() {
+      setLoadingConvs(true);
+      setError("");
+      try {
+        const res = await fetch(`${API_BASE}/api/conversations`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.error || "Failed to load conversations.");
+          return;
+        }
+
+        const convs = data.data || [];
+        const mapped = convs.map((c) => ({
+          id: c._id,
+          name: c.name || "Conversation",
+          last: "",
+          unread: 0,
+          members: (c.members || []).map((m) => ({
+            id: m._id || m,
+            name: m.fullname || m.name || m.email || "Unknown",
+            email: m.email || null,
+          })),
+        }));
+
+        setThreads(mapped);
+        if (mapped.length > 0) setActiveId(mapped[0].id);
+      } catch (e) {
+        console.error("Conversations error:", e);
+        setError("Failed to load conversations.");
+      } finally {
+        setLoadingConvs(false);
+      }
+    }
+
+    fetchConversations();
+  }, []);
+
+  // 3) Fetch messages when active conversation changes
+  useEffect(() => {
+    if (!activeId) return;
+
+    async function fetchMessages() {
+      setLoadingMessages(true);
+      setError("");
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/conversations/${activeId}/messages`,
+          { credentials: "include" }
+        );
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.error || "Failed to load messages.");
+          return;
+        }
+
+        const msgs = data.data || [];
+        const mapped = msgs.map((m) => ({
+          id: m._id,
+          text: m.text,
+          fromSelf:
+            currentUserId &&
+            String(m.sender) === String(currentUserId),
+        }));
+
+        setMessagesByThread((prev) => ({
+          ...prev,
+          [activeId]: mapped,
+        }));
+      } catch (e) {
+        console.error("Messages error:", e);
+        setError("Failed to load messages.");
+      } finally {
+        setLoadingMessages(false);
+      }
+    }
+
+    fetchMessages();
+
+    const socket = getSocket();
+    if (socket) {
+      socket.emit("conversation:join", { conversationId: activeId });
+    }
+  }, [activeId, currentUserId]);
+
+  // 4) Listen for live incoming messages (with de-dupe on tempId)
+  useEffect(() => {
+    const socket = initSocket();
+
+    const handler = (msg) => {
+      const convId = msg.conversation;
+
+      setMessagesByThread((prev) => {
+        const existing = prev[convId] || [];
+        const fromSelf =
+          currentUserId &&
+          String(msg.sender) === String(currentUserId);
+
+        // If this message has a tempId and it's from self,
+        // try to find and replace the optimistic message instead of adding a duplicate.
+        if (msg.tempId && fromSelf) {
+          const idx = existing.findIndex(
+            (m) => m.tempId && m.tempId === msg.tempId
+          );
+          if (idx !== -1) {
+            const updated = [...existing];
+            updated[idx] = {
+              id: msg._id,
+              text: msg.text,
+              fromSelf,
+              tempId: msg.tempId,
+            };
+            return {
+              ...prev,
+              [convId]: updated,
+            };
+          }
+        }
+
+        // Otherwise just append as a new message
+        const mapped = {
+          id: msg._id,
+          text: msg.text,
+          fromSelf,
+        };
+
+        return {
+          ...prev,
+          [convId]: [...existing, mapped],
+        };
+      });
+
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === convId
+            ? {
+                ...t,
+                last: msg.text,
+                unread: t.id === activeId ? 0 : (t.unread || 0) + 1,
+              }
+            : t
+        )
+      );
+    };
+
+    socket.on("message:new", handler);
+    return () => socket.off("message:new", handler);
+  }, [activeId, currentUserId]);
+
+  // 5) Send a message (optimistic with tempId)
   const send = (e) => {
     e.preventDefault();
     if (!draft.trim() || !activeId) return;
 
+    const socket = getSocket();
+    if (!socket) return;
+
     const text = draft.trim();
-    const newMessage = { id: Date.now(), who: "me", text };
+    const tempId = `temp-${Date.now()}`;
 
-    setMessagesByThread((prev) => {
-      const existing = prev[activeId] || [];
-      return {
-        ...prev,
-        [activeId]: [...existing, newMessage],
-      };
-    });
+    const optimistic = {
+      id: tempId,
+      tempId,        // ⬅️ keep track so we can match it later
+      text,
+      fromSelf: true,
+    };
 
-    // Update last message preview + clear unread on that thread
+    setMessagesByThread((prev) => ({
+      ...prev,
+      [activeId]: [...(prev[activeId] || []), optimistic],
+    }));
+
     setThreads((prev) =>
-      prev.map((t) => (t.id === activeId ? { ...t, last: text, unread: 0 } : t))
+      prev.map((t) =>
+        t.id === activeId ? { ...t, last: text, unread: 0 } : t
+      )
+    );
+
+    socket.emit(
+      "message:send",
+      { conversationId: activeId, text, tempId, attachments: [] },
+      (ack) => {
+        if (!ack?.ok) console.error("Send failed:", ack?.error);
+      }
     );
 
     setDraft("");
   };
 
-  // 🔹 "New" button handlers
+  // New conversation modal
   const openNewModal = () => {
     setNewName("");
     setIsNewOpen(true);
   };
 
-  const createNewConversation = (e) => {
+  const createNewConversation = async (e) => {
     e.preventDefault();
     const name = newName.trim();
     if (!name) return;
 
-    const id = `t-${Date.now()}`;
+    try {
+      const res = await fetch(`${API_BASE}/api/dev/seed-conv`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name }),
+      });
 
-    setThreads((prev) => [
-      {
-        id,
-        name,
-        last: "",
-        unread: 0,
-        members: ["You", name],
-      },
-      ...prev,
-    ]);
+      const data = await res.json();
 
-    setMessagesByThread((prev) => ({
-      ...prev,
-      [id]: [],
-    }));
+      if (!data.success) {
+        console.error("seed-conv error:", data);
+        return;
+      }
 
-    setActiveId(id);
-    setIsNewOpen(false);
+      const conv = data.data;
+
+      setThreads((prev) => [
+        {
+          id: conv._id,
+          name: conv.name || name,
+          last: "",
+          unread: 0,
+          members: (conv.members || []).map((m) => ({
+            id: m._id || m,
+            name: m.fullname || m.name || m.email || "Unknown",
+            email: m.email || null,
+          })),
+        },
+        ...prev,
+      ]);
+
+      setMessagesByThread((prev) => ({
+        ...prev,
+        [conv._id]: [],
+      }));
+
+      setActiveId(conv._id);
+      setIsNewOpen(false);
+    } catch (err) {
+      console.error("createNewConversation error:", err);
+    }
   };
 
-  // 🔹 "Add Member" handlers
+  // Add member modal
   const openAddMemberModal = () => {
     if (!activeThread) return;
     setNewMember("");
     setIsAddOpen(true);
   };
 
-  const handleAddMember = (e) => {
+  const handleAddMember = async (e) => {
     e.preventDefault();
-    const member = newMember.trim();
-    if (!member || !activeThread) return;
+    const email = newMember.trim();
+    if (!email || !activeThread) return;
 
-    setThreads((prev) =>
-      prev.map((t) =>
-        t.id === activeThread.id
-          ? {
-              ...t,
-              members: t.members?.includes(member)
-                ? t.members
-                : [...(t.members || []), member],
-            }
-          : t
-      )
-    );
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/conversations/${activeThread.id}/add-member`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email }),
+        }
+      );
 
-    setIsAddOpen(false);
+      const data = await res.json();
+      if (!data.success) {
+        console.error("add-member error:", data);
+        return;
+      }
+
+      const conv = data.data;
+
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.id === activeThread.id
+            ? {
+                ...t,
+                members: (conv.members || []).map((m) => ({
+                  id: m._id || m,
+                  name: m.fullname || m.name || m.email || "Unknown",
+                  email: m.email || null,
+                })),
+              }
+            : t
+        )
+      );
+
+      setIsAddOpen(false);
+    } catch (err) {
+      console.error("handleAddMember error:", err);
+    }
   };
 
   return (
@@ -151,7 +362,7 @@ export default function Messages() {
       <GridOverlay />
       <LoggedInNavbar />
 
-      {/* ✅ Centered Gradient Header */}
+      {/* Header */}
       <section className="relative mb-10 text-center">
         <div
           className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
@@ -163,11 +374,10 @@ export default function Messages() {
           <p className="text-gray-300">Chat with your squad and peers.</p>
         </div>
       </section>
-      {/* ✅ End Header */}
 
       <main className="max-w-7xl mx-auto px-6 pb-12 relative z-10">
         <div className="grid grid-cols-12 gap-6">
-          {/* Threads list */}
+          {/* Conversations list */}
           <aside
             className={`col-span-12 md:col-span-4 lg:col-span-3 rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-4`}
           >
@@ -181,44 +391,61 @@ export default function Messages() {
               </button>
             </div>
 
-            <ul className="space-y-2">
-              {threads.map((t) => {
-                const active = t.id === activeId;
-                return (
-                  <li key={t.id}>
-                    <button
-                      onClick={() => setActiveId(t.id)}
-                      className={`w-full text-left rounded-xl px-3 py-2 border transition ${
-                        active
-                          ? "border-cyan-400 bg-cyan-500/10"
-                          : `${BORDER_COLOR} border hover:border-cyan-400/60`
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`font-medium ${
-                            active ? "text-white" : "text-gray-200"
-                          }`}
-                        >
-                          {t.name}
-                        </span>
-                        {t.unread > 0 && (
-                          <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-fuchsia-600 text-[11px]">
-                            {t.unread}
+            {error && (
+              <p className="text-xs text-red-400 mb-2 text-center">
+                {error}
+              </p>
+            )}
+
+            {loadingConvs ? (
+              <p className="text-sm text-gray-400">
+                Loading conversations...
+              </p>
+            ) : threads.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                No conversations yet. You may need to seed some via the
+                backend.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {threads.map((t) => {
+                  const active = t.id === activeId;
+                  return (
+                    <li key={t.id}>
+                      <button
+                        onClick={() => setActiveId(t.id)}
+                        className={`w-full text-left rounded-xl px-3 py-2 border transition ${
+                          active
+                            ? "border-cyan-400 bg-cyan-500/10"
+                            : `${BORDER_COLOR} border hover:border-cyan-400/60`
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`font-medium ${
+                              active ? "text-white" : "text-gray-200"
+                            }`}
+                          >
+                            {t.name}
                           </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-400 truncate">
-                        {t.last || "Start a conversation"}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                          {t.unread > 0 && (
+                            <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-fuchsia-600 text-[11px]">
+                              {t.unread}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-400 truncate">
+                          {t.last || "Start a conversation"}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </aside>
 
-          {/* Chat Pane */}
+          {/* Chat pane */}
           <section
             className={`col-span-12 md:col-span-8 lg:col-span-9 rounded-2xl ${FEATURE_BG} ${BORDER_COLOR} border p-4 md:p-6`}
           >
@@ -227,48 +454,58 @@ export default function Messages() {
                 <h2 className="text-lg font-audiowide tracking-wider">
                   {activeThread?.name ?? "Select a conversation"}
                 </h2>
-                {activeThread?.members && activeThread.members.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Members: {activeThread.members.join(", ")}
-                  </p>
-                )}
+                {activeThread?.members &&
+                  activeThread.members.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Members:{" "}
+                      {activeThread.members
+                        .map((m) => m.name)
+                        .join(", ")}
+                    </p>
+                  )}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={openAddMemberModal}
-                  disabled={!activeThread}
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT} ${
-                    !activeThread ? "opacity-60 cursor-not-allowed" : ""
-                  }`}
-                >
-                  Add Member
-                </button>
-                <button
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border hover:border-cyan-400/60`}
-                >
-                  Info
-                </button>
-              </div>
+              <button
+                onClick={openAddMemberModal}
+                disabled={!activeThread}
+                className={`px-3 py-1 rounded-lg text-sm font-semibold shadow hover:brightness-110 ${ACCENT_GRADIENT} ${
+                  !activeThread ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              >
+                Add Member
+              </button>
             </div>
 
             <div
               className={`h-[48vh] md:h-[58vh] rounded-xl overflow-y-auto p-3 space-y-3 ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
             >
-              {messages.length === 0 && (
+              {loadingMessages && activeId && (
+                <p className="text-sm text-gray-400 text-center mt-4">
+                  Loading messages...
+                </p>
+              )}
+
+              {!loadingMessages && messages.length === 0 && activeId && (
                 <p className="text-sm text-gray-500 text-center mt-4">
                   No messages yet. Start the conversation below.
                 </p>
               )}
+
+              {!activeId && (
+                <p className="text-sm text-gray-500 text-center mt-4">
+                  Select a conversation to start chatting.
+                </p>
+              )}
+
               {messages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex ${
-                    m.who === "me" ? "justify-end" : "justify-start"
+                    m.fromSelf ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
                     className={`max-w-[80%] rounded-xl px-3 py-2 text-sm border ${
-                      m.who === "me"
+                      m.fromSelf
                         ? "bg-blue-600 border-blue-500"
                         : `${FEATURE_BG} ${BORDER_COLOR} border`
                     }`}
@@ -284,7 +521,7 @@ export default function Messages() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={
-                  activeThread ? "Type a message…" : "Select or create a chat…"
+                  activeThread ? "Type a message…" : "Select a conversation…"
                 }
                 disabled={!activeThread}
                 className={`flex-1 rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border ${
@@ -316,21 +553,18 @@ export default function Messages() {
             className={`w-full max-w-md rounded-2xl p-6 ${FEATURE_BG} ${BORDER_COLOR} border`}
           >
             <h3 className="text-lg font-semibold mb-3">Start a New Chat</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Who do you want to start a conversation with?
-            </p>
             <form onSubmit={createNewConversation} className="space-y-4">
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Name (e.g., Rafay, Algorithm Avengers)"
+                placeholder="Conversation Name (e.g., Squad Chat)"
                 className={`w-full rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
               />
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsNewOpen(false)}
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border hover:border-cyan-400/60`}
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border`}
                 >
                   Cancel
                 </button>
@@ -346,7 +580,7 @@ export default function Messages() {
         </div>
       )}
 
-      {/* 🔹 Add Member Modal */}
+      {/* Add Member Modal */}
       {isAddOpen && activeThread && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
           <div
@@ -356,20 +590,22 @@ export default function Messages() {
               Add Member to {activeThread.name}
             </h3>
             <p className="text-sm text-gray-400 mb-4">
-              Enter the name of the member you want to add.
+              Enter the <span className="font-medium">email</span> of the member
+              you want to add. If they don&apos;t have an account yet, one will
+              be created and they can log in later.
             </p>
             <form onSubmit={handleAddMember} className="space-y-4">
               <input
                 value={newMember}
                 onChange={(e) => setNewMember(e.target.value)}
-                placeholder="Member name"
+                placeholder="member@example.com"
                 className={`w-full rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
               />
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border hover:border-cyan-400/60`}
+                  className={`px-3 py-1 rounded-lg text-sm font-semibold ${BORDER_COLOR} border`}
                 >
                   Cancel
                 </button>

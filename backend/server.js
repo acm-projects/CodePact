@@ -138,10 +138,13 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
 app.get('/api/conversations', requireAuth, async (req, res) => {
   const convs = await Conversation.find({ members: req.user.id })
     .select('_id name updatedAt members')
+    .populate('members', 'email fullname name')
     .sort({ updatedAt: -1 })
     .lean();
+
   res.json({ success: true, data: convs });
 });
+
 
 app.get('/api/conversations/:id/messages', requireAuth, async (req, res) => {
   const { id } = req.params;
@@ -190,6 +193,69 @@ app.post('/api/dev/seed-conv', requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: e.message || 'internal error' });
   }
 });
+
+app.post('/api/conversations/:id/add-member', requireAuth, async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'email required' });
+    }
+
+    const normalized = String(email).toLowerCase().trim();
+
+    // Only a member of the conversation can add others
+    const conv = await Conversation.findOne({
+      _id: req.params.id,
+      members: req.user.id,
+    });
+
+    if (!conv) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    let user = await User.findOne({ email: normalized });
+
+    // If user doesn't exist yet, create one with a dev placeholder password
+    if (!user) {
+      const passwordHash = await bcrypt.hash('dev-placeholder-password', 10);
+      user = await User.create({
+        email: normalized,
+        fullname: normalized.split('@')[0],
+        passwordHash,
+      });
+    }
+
+    // Add to conversation members if not already present
+    if (!conv.members.some((m) => m.toString() === user._id.toString())) {
+      conv.members.push(user._id);
+      await conv.save();
+    }
+
+    await conv.populate('members', 'email fullname name');
+
+    res.json({
+      success: true,
+      data: conv,
+      // Helpful info for you while testing:
+      note: 'If this email did not have an account, it was created with password "dev-placeholder-password".',
+    });
+  } catch (e) {
+    console.error('add-member error:', e);
+    res.status(500).json({ success: false, error: e.message || 'internal error' });
+  }
+});
+
+
+app.post('/api/auth/logout', (req, res) => {
+  res.cookie('cp_jwt', '', {
+    httpOnly: true,
+    secure: false,              // true in production HTTPS
+    sameSite: 'lax',
+    expires: new Date(0)
+  });
+  return res.json({ success: true });
+});
+
 
 // ===== Socket.IO Setup =====
 const io = new Server(server, {

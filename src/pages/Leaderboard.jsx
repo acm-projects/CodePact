@@ -1,4 +1,5 @@
 // src/pages/Leaderboard.jsx
+import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
@@ -14,6 +15,7 @@ import {
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState("Home");
   const navigate = useNavigate();
+  const { user, authLoading } = useAuth();
 
   const tabs = [
     "Home",
@@ -41,8 +43,15 @@ export default function Leaderboard() {
     else if (tab === "Public Forum") navigate("/public-forum");
     else if (tab === "Messages") navigate("/messages");
     else if (tab === "AI Interviewer") navigate("/interview");
-    else if (tab === "Reminders & Notifications") navigate("/notifications");
+    else if (tab === "Reminders & Notifications")
+      navigate("/notifications");
   };
+
+  // Derives a first name from user object (name, fullname, or email prefix)
+  const firstName =
+    user?.name?.split(" ")[0] ||
+    user?.fullname?.split(" ")[0] ||
+    (user?.email ? user.email.split("@")[0] : "");
 
   const stats = [
     { label: "Your Squad Points", value: 123, color: "text-rose-400" },
@@ -56,14 +65,18 @@ export default function Leaderboard() {
       <LoggedInNavbar />
       <GridOverlay />
 
-      {/*  Gradient Band added here */}
+      {/* Gradient Band */}
       <section className="relative">
         <div
           className={`absolute inset-0 pointer-events-none opacity-20 ${ACCENT_GRADIENT}`}
         />
         <div className="relative max-w-6xl mx-auto px-6 pt-8 pb-2 text-center">
           <h1 className="text-2xl font-bold mb-2 text-white">
-            Welcome, Nabiha!
+            {authLoading && !firstName
+              ? "Welcome..."
+              : firstName
+              ? `Welcome, ${firstName}!`
+              : "Welcome"}
           </h1>
           <h2 className="text-4xl font-audiowide mb-4">
             <span>LEADERBOARD & </span>
@@ -78,9 +91,8 @@ export default function Leaderboard() {
           </p>
         </div>
       </section>
-      {/* ✅ End gradient section */}
+      {/* End gradient section */}
 
-      {/* Rest of your code untouched */}
       <main className="max-w-6xl mx-auto px-6 py-10 relative z-10">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

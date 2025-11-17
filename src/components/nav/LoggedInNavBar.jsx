@@ -1,3 +1,4 @@
+// src/components/nav/LoggedInNavBar.jsx
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { User, Bell } from "lucide-react";
@@ -8,6 +9,7 @@ import {
   FEATURE_BG,
   BORDER_COLOR,
 } from "../../utils/constants";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoggedInNavbar() {
   const tabs = [
@@ -22,6 +24,7 @@ export default function LoggedInNavbar() {
   const [addOpen, setAddOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+  const { logout } = useAuth(); // ⬅️ pull logout from AuthContext
 
   useEffect(() => {
     const onDown = (e) => {
@@ -42,7 +45,12 @@ export default function LoggedInNavbar() {
     };
   }, []);
 
-  const handleLogout = () => navigate("/");
+  const handleLogout = async () => {
+    // Call backend + clear user from context
+    await logout();
+    // Send user back to the public landing / login page
+    navigate("/");
+  };
 
   return (
     <>

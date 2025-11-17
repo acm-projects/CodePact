@@ -24,11 +24,13 @@ export default function CreateAccount() {
     agreeToTerms: false,
   });
 
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const showErrorMessage = (message) => {
-    // Placeholder for real error handling (e.g., a toast notification)
-    alert(message);
+    setError(message);
   };
 
   const handleChange = (e) => {
@@ -39,21 +41,83 @@ export default function CreateAccount() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
       showErrorMessage("Error: Passwords do not match.");
       return;
     }
 
-    // Simulate account creation success
-    console.log("Attempting account activation...");
+    if (!formData.agreeToTerms) {
+      showErrorMessage(
+        "You must agree to the Terms of Service and Privacy Policy."
+      );
+      return;
+    }
 
-    // Navigate to the Congratulations page
-    setTimeout(() => {
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:8000/api/create-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // Backend expects: { email, password, name, fullname }
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: fullName,
+          fullname: fullName,
+        }),
+      });
+
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+
+      console.log("create-user response:", res.status, data);
+
+      if (!res.ok || !data.success) {
+        // Try to pull a useful message from various shapes
+        const firstErrorFromArray =
+          data?.errors && Array.isArray(data.errors) && data.errors.length > 0
+            ? data.errors[0].msg || JSON.stringify(data.errors[0])
+            : null;
+
+        const message =
+          firstErrorFromArray ||
+          data?.message ||
+          (typeof data === "string" ? data : null) ||
+          "Unable to create account. Please check your details.";
+
+        showErrorMessage(message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Store user/token if you want to auto-log in later
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      // Redirect to Congratulations page on successful signup
       navigate("/congratulations");
-    }, 500);
+    } catch (err) {
+      console.error("Create account error:", err);
+      showErrorMessage("Something went wrong. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -70,8 +134,8 @@ export default function CreateAccount() {
       <NavBar />
 
       {/* Header Divider */}
-      <div className={`relative z-10 w-full mb-8`}>
-        <div className={`h-[2px] bg-gray-700 opacity-70`}></div>
+      <div className="relative z-10 w-full mb-8">
+        <div className="h-[2px] bg-gray-700 opacity-70"></div>
       </div>
 
       <main className="max-w-xl mx-auto px-6 py-12 relative z-10 flex-grow">
@@ -169,9 +233,14 @@ export default function CreateAccount() {
               </label>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <p className="text-sm text-red-400 text-center">{error}</p>
+            )}
+
             {/* Primary CTA Button */}
-            <Button type="submit" widthClass="w-full">
-              ACTIVATE ACCOUNT
+            <Button type="submit" widthClass="w-full" disabled={isLoading}>
+              {isLoading ? "ACTIVATING..." : "ACTIVATE ACCOUNT"}
             </Button>
 
             {/* Login Link */}

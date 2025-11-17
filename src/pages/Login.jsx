@@ -17,16 +17,89 @@ import {
   GridOverlay,
 } from "../utils/constants";
 
+import { useAuth } from "../context/AuthContext";
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in:", { email, password, rememberMe });
-    navigate("/leaderboard");
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      // 1) Real password-based sign-in
+      const signInRes = await fetch(`${API_BASE}/api/sign-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      const signInData = await signInRes.json();
+
+      if (!signInRes.ok || !signInData.success) {
+        const msg =
+          signInData?.errors?.[0]?.msg ||
+          signInData?.message ||
+          "Invalid email or password";
+        setError(msg);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const signedInUser = signInData.user || {
+        id: signInData.id,
+        email,
+        name: null,
+      };
+
+      // 2) Refresh cookie /cp_jwt via dev-login so /auth/me & sockets see the right user
+      const devLoginRes = await fetch(`${API_BASE}/api/auth/dev-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          name: signedInUser.name || email.split("@")[0],
+        }),
+      });
+
+      const devLoginData = await devLoginRes.json();
+      if (!devLoginRes.ok || !devLoginData.success) {
+        console.warn("dev-login failed, but sign-in succeeded:", devLoginData);
+        // We still continue, but /auth/me might be wrong until refresh
+      }
+
+      // 3) Update AuthContext with the best user data we have
+      const authUser =
+        devLoginData.data ||
+        devLoginData.user || {
+          _id: signedInUser.id,
+          email,
+          name: signedInUser.name,
+        };
+
+      setUser(authUser);
+
+      // 4) Navigate to leaderboard
+      navigate("/leaderboard");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,6 +141,13 @@ export default function Login() {
             </p>
           </div>
 
+          {/* Error */}
+          {error && (
+            <div className="mb-4 text-sm text-red-400 text-center">
+              {error}
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormInput
@@ -107,8 +187,12 @@ export default function Login() {
             </div>
 
             {/* Log In Button */}
-            <Button type="submit" widthClass="w-full">
-              LOG IN
+            <Button
+              type="submit"
+              widthClass="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "LOGGING IN..." : "LOG IN"}
             </Button>
 
             {/* Sign Up Link */}

@@ -1,40 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import NotificationCard from "../components/reminders/NotificationCard";
 import SquadReminderCard from "../components/reminders/SquadReminderCard";
-import LoggedInNavbar from "../components/nav/LoggedInNavbar";
+import LoggedInNavbar from "../components/nav/LoggedInNavBar";
 import Footer from "../components/Footer";
 
 export default function RemindersPage() {
-  const notifications = [
-    {
-      type: "application",
-      text: "You applied for a ‘Data Science Intern’ role at Google.",
-      time: "2h",
-    },
-    { type: "message", text: "Mentor Emily sent you a message.", time: "5h" },
-    {
-      type: "application",
-      text: "You applied for a ‘Software Engineering Intern’ role at Microsoft.",
-      time: "1d",
-    },
-    { type: "message", text: "Bob James sent you a message.", time: "2d" },
-    {
-      type: "application",
-      text: "You applied for a ‘Product Management Intern’ role at Airbnb.",
-      time: "3d",
-    },
-  ];
+  const [notifications, setNotifications] = useState([]);
+  const [squad, setSquad] = useState([]);
 
-  const squad = [
-    { name: "Sam", lastActivityDays: 8, type: "application" },
-    { name: "Ava", lastActivityDays: 14, type: "problem" },
-    { name: "Rafay", lastActivityDays: 2, type: "problem" },
-    { name: "Noah", lastActivityDays: 0, type: "application" },
-  ];
+  // Replace this with your real user ID once auth is integrated
+  const userId = "6717b9b12345abcd12345678";
+
+  useEffect(() => {
+    const fetchReminders = async () => {
+      try {
+        const res = await axios.get(`http://localhost:8000/api/reminders/user/${userId}`);
+        setNotifications(res.data.reminders || []);
+      } catch (err) {
+        console.error("Error fetching reminders:", err);
+      }
+    };
+    fetchReminders();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      {/* Navbar */}
       <LoggedInNavbar />
 
       <div className="px-8 py-12 md:py-16 max-w-7xl mx-auto">
@@ -46,7 +37,6 @@ export default function RemindersPage() {
           </p>
         </div>
 
-        {/* Main content grid */}
         <div className="grid gap-10 md:grid-cols-2">
           {/* Notifications Section */}
           <section className="bg-[var(--panel)] border border-[var(--border)] rounded-2xl p-8 shadow-lg">
@@ -61,9 +51,20 @@ export default function RemindersPage() {
             </div>
 
             <div className="space-y-5">
-              {notifications.map((n, i) => (
-                <NotificationCard key={i} data={n} />
-              ))}
+              {notifications.length > 0 ? (
+                notifications.map((n) => (
+                  <NotificationCard
+                    key={n._id}
+                    data={{
+                      type: "reminder",
+                      text: n.title,
+                      time: new Date(n.dueDate).toLocaleDateString(),
+                    }}
+                  />
+                ))
+              ) : (
+                <p className="text-[var(--muted)] text-sm">No reminders yet.</p>
+              )}
             </div>
           </section>
 

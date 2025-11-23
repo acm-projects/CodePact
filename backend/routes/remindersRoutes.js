@@ -1,61 +1,67 @@
-const express = require('express');
-const Reminder = require('../models/reminder');
-const Notification = require('../models/notification');
+const express = require("express");
 const router = express.Router();
+const Reminder = require("../models/Reminder");
 
-// Create reminder
-router.post('/', async (req, res) => {
+// ✅ Create a reminder
+router.post("/", async (req, res) => {
   try {
-    const reminder = new Reminder(req.body);
-    await reminder.save();
+    const { userId, squadId, title, message, dueDate } = req.body;
+    if (!userId || !title || !dueDate) {
+      return res.status(400).json({ error: "userId, title, and dueDate are required" });
+    }
 
-    // Auto-create a notification for the reminder
-    await Notification.create({
-      userId: reminder.userId,
-      type: 'reminder',
-      title: `Reminder: ${reminder.title}`,
-      message: `Due on ${new Date(reminder.dueDate).toLocaleDateString()}`
+    const reminder = new Reminder({
+      userId,
+      squadId,
+      title,
+      message,
+      dueDate,
     });
 
-    res.status(201).json(reminder);
+    await reminder.save();
+    return res.status(201).json({ message: "Reminder created", reminder });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create reminder' });
+    console.error("Create reminder error:", err);
+    return res.status(500).json({ error: "Failed to create reminder" });
   }
 });
 
-// Get all reminders for a user
-router.get('/:userId', async (req, res) => {
+// ✅ Get reminders for a user
+router.get("/user/:userId", async (req, res) => {
   try {
-    const reminders = await Reminder.find({ userId: req.params.userId })
-      .sort({ dueDate: 1 });
-    res.json(reminders);
+    const reminders = await Reminder.find({ userId: req.params.userId }).sort({ dueDate: 1 });
+    return res.json({ reminders });
   } catch (err) {
-    res.status(500).json({ error: 'Error fetching reminders' });
+    console.error("Get reminders error:", err);
+    return res.status(500).json({ error: "Failed to fetch reminders" });
   }
 });
 
-// Mark reminder complete
-router.patch('/:id/complete', async (req, res) => {
+// ✅ Mark a reminder as completed
+router.put("/:id/complete", async (req, res) => {
   try {
     const reminder = await Reminder.findByIdAndUpdate(
       req.params.id,
       { completed: true },
       { new: true }
     );
-
-    // Optional: notify squad teammates
-    if (reminder.squadId) {
-      await Notification.create({
-        userId: reminder.userId,
-        type: 'squad',
-        title: 'Squad Update',
-        message: `A teammate completed "${reminder.title}"!`
-      });
-    }
-
-    res.json(reminder);
+    if (!reminder) return res.status(404).json({ error: "Reminder not found" });
+    return res.json({ message: "Reminder marked complete", reminder });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to complete reminder' });
+    console.error("Complete reminder error:", err);
+    return res.status(500).json({ error: "Failed to complete reminder" });
+  }
+});
+
+// ✅ Delete a reminder
+router.delete("/:id", async (req, res) => {
+  try {
+    const deleted = await Reminder.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Reminder not found" });
+    return res.json({ message: "Reminder deleted" });
+  } catch (err) {
+    console.error("Delete reminder error:", err);
+    return res.status(500).json({ error: "Failed to delete reminder" });
   }
 });
 

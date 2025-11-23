@@ -1,11 +1,13 @@
 const { MongoClient } = require('mongodb');
 const { isElementAccessExpression } = require('typescript');
-const uri = process.env.MONGO_API_KEY;
+var uri = process.env.MONGO_API_KEY;
 let monServer;
 
 async function connectMongo() {
   if (!monServer) {
+    uri = process.env.MONGO_API_KEY;
     monServer = new MongoClient(uri);
+   
     await monServer.connect();
   }
   return monServer;

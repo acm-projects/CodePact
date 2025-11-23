@@ -1,6 +1,7 @@
 const { MongoClient } = require('mongodb');
-const uri = process.env.MONGO_API_KEY;
 let monServer;
+const uri = process.env.MONGO_API_KEY;
+
 
 async function connectMongo() {
   if (!monServer) {

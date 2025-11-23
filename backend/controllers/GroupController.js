@@ -1,9 +1,13 @@
 const { MongoClient } = require('mongodb');
-const uri = process.env.MONGO_API_KEY;
+var uri = process.env.MONGO_API_KEY;
 let monServer;
 
 async function connectMongo() {
   if (!monServer) {
+    console.log(process.env.MONGO_API_KEY);
+    uri = process.env.MONGO_API_KEY;
+
+
     monServer = new MongoClient(uri);
     await monServer.connect();
   }
@@ -43,7 +47,14 @@ exports.addGroupData = async (req, res) => {
       });
     }
     
-    await group.insertOne({ name: trimmedName, size: members, people: [] });
+    const usersDb = client.db("cluster0").collection("users");
+
+    let codeLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    codeLetters = codeLetters.sort(() => Math.random() - 0.5);
+    const groupCode = codeLetters.join("").substring(0, 5);
+    await group.insertOne({ name: trimmedName, size: members, people: [] ,code:groupCode});
+
+    await usersDb.$set({ emailAdress:req.session.user.emailAddress }, { $push: { adminGroups: trimmedName } }, {$push:{userGroups:trimmedName}});
     const groupList = await group.find({}).toArray();
     
     res.json(groupList);
@@ -117,3 +128,31 @@ exports.deleteUserFromGroup = async (req, res) => {
     res.status(500).send("Error deleting user from group");
   }
 };
+
+exports.groupJoinCode = async (req, res) => {
+  const {groupCode} = req.query;
+  try{
+    const client = await connectMongo();
+    const groups = client.db("cluster0").collection("groups");
+    const users = client.db("cluster0").collection("users");
+    const groupDetails = await groups.findOne({code:groupCode});
+    if(!groupDetails)
+    {
+      return res.status(404).json({success:false, message: "Group not found"});
+    }
+    const userDetails = await users.findOne({name:req.session.user.fullname});
+    if(userDetails.userGroups && userDetails.userGroups.includes(groupCode))
+    {
+      return res.status(400).json({success:false, message: "User already in group"});
+    }
+    else{
+      await users.$set({name:req.session.user.fullname}, {$push: {userGroups: groupDetails.name}});
+      res.json({success:true, message: "Joined group successfully" });
+    }
+  }
+  catch(err)
+  {
+    console.error(err);
+    res.status(500).send("Error joining group with code");
+  }
+}

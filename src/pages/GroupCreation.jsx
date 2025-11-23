@@ -37,64 +37,26 @@ export default function GroupCreation() {
 
   const handleCreateSquad = async (e) => {
     e.preventDefault();
-    
-    console.log("🟢 [CREATE GROUP FRONTEND] Form submitted");
-    console.log("🟢 [CREATE GROUP FRONTEND] Squad name:", squadName);
-    console.log("🟢 [CREATE GROUP FRONTEND] Squad name trimmed:", squadName.trim());
-    console.log("🟢 [CREATE GROUP FRONTEND] Squad name length:", squadName.trim().length);
-    
-    if (!squadName.trim()) {
+  
+    if (!squadName.trim()) 
+      {
       console.log("🟢 [CREATE GROUP FRONTEND] Validation failed: empty squad name");
       return;
     }
-
-    const requestData = {
-      name: squadName.trim(),
-      members: "0"
-    };
-    
-    console.log("🟢 [CREATE GROUP FRONTEND] Request data:", requestData);
-    console.log("🟢 [CREATE GROUP FRONTEND] Calling addGroupData API...");
-
-    try {
-      const result = await groupAPI.addGroupData(requestData);
-      
-      console.log("🟢 [CREATE GROUP FRONTEND] API response received");
-      console.log("🟢 [CREATE GROUP FRONTEND] Response ok:", result.ok);
-      console.log("🟢 [CREATE GROUP FRONTEND] Response status:", result.status);
-      console.log("🟢 [CREATE GROUP FRONTEND] Response data:", result.data);
-      console.log("🟢 [CREATE GROUP FRONTEND] Response error:", result.error);
-      
-      if (result.ok) {
-        console.log("🟢 [CREATE GROUP FRONTEND] Group created successfully!");
-        console.log("🟢 [CREATE GROUP FRONTEND] Group list returned:", result.data);
-        alert(`✅ Squad "${squadName}" created successfully!`);
-        setSquadName("");
-        setInviteFriends("");
-        navigate("/squads", { state: { refreshGroups: true, newGroupName: squadName.trim() } });
-      } else {
-        console.log("🟢 [CREATE GROUP FRONTEND] Group creation failed");
-        console.log("🟢 [CREATE GROUP FRONTEND] Error message:", result.error);
-        if (result.data && typeof result.data === 'object' && result.data.debug) {
-          console.log("🟢 [CREATE GROUP FRONTEND] Debug info:", result.data.debug);
-          console.log("🟢 [CREATE GROUP FRONTEND] Requested name:", result.data.debug.requestedName);
-          console.log("🟢 [CREATE GROUP FRONTEND] Existing name:", result.data.debug.existingGroupName);
-          console.log("🟢 [CREATE GROUP FRONTEND] Names match:", result.data.debug.nameMatch);
-          console.log("🟢 [CREATE GROUP FRONTEND] All group names in DB:", result.data.debug.allGroupNames);
-        }
-        alert(result.error || (result.data && typeof result.data === 'object' ? result.data.message : result.data) || "Failed to create squad");
+      else
+      {
+        const reply = await fetch(`http://localhost:3000/addGroupData?name=${encodeURIComponent(squadName.trim())}&members=0`);
+        const data = await reply.json();
+        console.log("Created Group");
       }
-    } catch (error) {
-      console.error("🟢 [CREATE GROUP FRONTEND] Exception caught:", error);
-      console.error("🟢 [CREATE GROUP FRONTEND] Error message:", error.message);
-      console.error("🟢 [CREATE GROUP FRONTEND] Error stack:", error.stack);
-      alert("An error occurred while creating the squad");
-    }
   };
 
-  const handleJoinSquad = (e) => {
+  const handleJoinSquad = async (e) => {
     e.preventDefault();
     if (joinCode.trim()) {
+      const reply = await fetch(`http://localhost:3000/findCodeGroup?code=${encodeURIComponent(joinCode.trim())}`);
+      const data = await reply.json();
+      console.log(data);
       alert(`🔗 Joined squad with code: ${joinCode}`);
       setJoinCode("");
     }

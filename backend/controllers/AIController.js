@@ -52,6 +52,7 @@ exports.addInterviewAnswer = async (req, res) => {
  */
 exports.chat = async (req, res) => {
   const { text } = req.query;
+  console.log(text);
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -64,6 +65,7 @@ exports.chat = async (req, res) => {
         { role: "user", content: text },
       ],
     });
+    
     res.json({ reply: response.choices[0].message.content });
   } catch (err) {
     console.error(err);

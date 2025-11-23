@@ -18,8 +18,8 @@ import {
   ACCENT_GRADIENT,
   GridOverlay,
 } from "../utils/constants";
-import { aiAPI } from "../utils/api";
 
+// ---- Fake AI question generator (stub) ----
 const SAMPLE_QUESTIONS = [
   {
     id: "q1",
@@ -72,7 +72,6 @@ export default function AIInterviewerWithSuggestions() {
       time: "2 min ago",
     },
   ]);
-  const [msg, setMsg] = useState("");
 
   const PER_QUESTION_SECONDS = 6 * 60;
   const [remaining, setRemaining] = useState(PER_QUESTION_SECONDS);
@@ -98,52 +97,39 @@ export default function AIInterviewerWithSuggestions() {
     setRemaining(PER_QUESTION_SECONDS);
   };
 
-  const endInterview = async () => {
-    try {
-      const result = await aiAPI.finishInterview();
-      navigate("/interview/feedback", {
-        state: {
-          room,
-          role,
-          askedQuestions: Array.from(new Set([SAMPLE_QUESTIONS[questionIdx].id])),
-          summary: result.ok && result.data?.summary ? result.data.summary : null,
-        },
-      });
-    } catch (error) {
-      console.error("Error finishing interview:", error);
-      navigate("/interview/feedback", {
-        state: {
-          room,
-          role,
-          askedQuestions: Array.from(new Set([SAMPLE_QUESTIONS[questionIdx].id])),
-        },
-      });
-    }
+  const endInterview = () => {
+    navigate("/interview/feedback", {
+      state: {
+        room,
+        role,
+        askedQuestions: Array.from(new Set([SAMPLE_QUESTIONS[questionIdx].id])),
+      },
+    });
   };
 
-  const pushChat = (role, text) =>
-    setChat((c) => [...c, { role, text, time: "now" }]);
+  const pushChat = (msgRole, text) =>
+    setChat((c) => [...c, { role: msgRole, text, time: "now" }]);
 
-  const onPickSuggestion = (text) => pushChat("ai", text);
+  // 🔹 Suggested questions are for the interviewer, so treat them as interviewer messages
+  const onPickSuggestion = (text) => {
+    const senderRole = role === "interviewer" ? "interviewer" : "candidate";
+    pushChat(senderRole, text);
+  };
 
-  const send = async (t) => {
-    const text = t?.trim?.() ?? msg.trim();
-    if (!text) return;
-    
-    pushChat("user", text);
-    setMsg("");
-    
-    try {
-      const result = await aiAPI.chatWithInterviewer(text);
-      if (result.ok && result.data?.reply) {
-        pushChat("ai", result.data.reply);
-      } else {
-        pushChat("ai", "Sorry, I couldn't process that. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error chatting with AI:", error);
-      pushChat("ai", "An error occurred. Please try again.");
-    }
+  // 👇 This is what ChatInput calls with the raw text
+  const send = async (raw) => {
+    if (typeof raw !== "string") raw = "";
+
+    // Collapse ALL whitespace (spaces, newlines, tabs) into single spaces
+    const cleaned = raw.replace(/\s+/g, " ").trim();
+    if (!cleaned) return;
+
+    const senderRole = role === "interviewer" ? "interviewer" : "candidate";
+    pushChat("user", cleaned);
+    const data = await fetch(`http://localhost:3000/chat?text=${encodeURIComponent(cleaned)}`);
+    const response = await data.json();
+    console.log("CLEANED: "+cleaned);
+    pushChat("ai",response.reply);
   };
 
   return (
@@ -153,6 +139,7 @@ export default function AIInterviewerWithSuggestions() {
       <GridOverlay />
       <LoggedInNavBar />
 
+      {/* Top bar */}
       <div
         className={`flex items-center justify-between ${FEATURE_BG} ${BORDER_COLOR} border-b px-4 sm:px-6 py-3`}
       >
@@ -167,7 +154,9 @@ export default function AIInterviewerWithSuggestions() {
         </div>
       </div>
 
+      {/* Main grid */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-4 sm:gap-5 p-3 sm:p-5 max-w-[1400px] w-full mx-auto">
+        {/* LEFT: Shared editor + chat */}
         <div className="space-y-4 sm:space-y-5">
           <Panel
             title="Shared Editor"
@@ -189,20 +178,23 @@ export default function AIInterviewerWithSuggestions() {
           >
             <div className="flex-1 overflow-y-auto pr-1 flex flex-col p-4">
               {chat.map((m, i) => (
-                <ChatBubble key={i} role={m.role} text={m.text} time={m.time} />
+                <ChatBubble
+                  key={i}
+                  role={m.role}
+                  text={m.text}
+                  time={m.time}
+                  isOwn={m.role === "interviewer"}
+                />
               ))}
             </div>
             <div className={`${BORDER_COLOR} border-t`}>
-              <ChatInput
-                value={msg}
-                onChange={setMsg}
-                onSubmit={send}
-                placeholder="Type your message..."
-              />
+              {/* ChatInput manages its own internal msg; we just get text via onSend */}
+              <ChatInput onSend={send} placeholder="Type your message..." />
             </div>
           </Panel>
         </div>
 
+        {/* RIGHT: AI Question + Notepad + Suggestions */}
         <aside className="space-y-4">
           <Panel
             title="AI Question"

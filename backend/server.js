@@ -16,6 +16,9 @@ const UserDetails = require("./controllers/UserDetails.js");
 const app = express();
 const PORT = 3000;
 
+const uri = process.env.MONGO_API_KEY;
+console.log("Mongo URI:", uri);
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -58,10 +61,12 @@ app.get("/getGroupList", GroupController.getGroupList);
 app.get("/searchForEntry", GroupController.searchForEntry);
 app.get("/getMembers", GroupController.getMembers);
 app.get("/deleteUserFromGroup", GroupController.deleteUserFromGroup);
+app.get("/findCodeGroup",GroupController.groupJoinCode);
 app.get("/health", (_req, res) => res.json({ ok: true, at: "backend" }));
 
 // ======================= DEBUG ROUTE ======================= //
 app.get("/debug/users", async (req, res) => {
+
   try {
     const User = require("./models/user");
     const users = await User.find({}).limit(10);

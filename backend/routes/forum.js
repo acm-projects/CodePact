@@ -1,13 +1,9 @@
+// backend/routes/forum.js
 const express = require('express');
 const router = express.Router();
 const ForumThread = require('../models/ForumThread');
-const Job = require('../models/Job');
-const cors = require('cors');
 
-// Allow frontend (React) to make requests
-router.use(cors({ origin: 'http://localhost:8000', credentials: true }));
-
-// ✅ Create a thread
+// Create thread
 // POST /api/forum/threads
 router.post('/threads', async (req, res) => {
   try {
@@ -17,33 +13,36 @@ router.post('/threads', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const existingThread = await ForumThread.findOne({ jobCode, title });
-    if (existingThread) {
-      return res.status(409).json({ error: 'Thread already exists' });
-    }
+    // optional: normalize jobCode
+    const jcode = jobCode.toString();
+
+    const existing = await ForumThread.findOne({ jobCode: jcode, title }).lean();
+    if (existing) return res.status(409).json({ error: 'Thread already exists' });
 
     const thread = new ForumThread({
-      jobCode,
+      jobCode: jcode,
       companyName,
       title,
       body,
       authorName,
-      tags: Array.isArray(tags) ? tags : (tags ? [tags] : []),
+      tags: Array.isArray(tags) ? tags : (tags ? [tags] : [])
     });
 
     await thread.save();
-    res.status(201).json(thread);
+    return res.status(201).json({ thread });
   } catch (err) {
     console.error('Create thread error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ Get all threads (for Public Forum home)
+// Get latest threads (public feed)
+// GET /api/forum/threads?limit=20&page=1
 router.get('/threads', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+
     const threads = await ForumThread.find({})
       .sort({ pinned: -1, createdAt: -1 })
       .skip((page - 1) * limit)
@@ -51,59 +50,62 @@ router.get('/threads', async (req, res) => {
       .lean();
 
     const total = await ForumThread.countDocuments({});
-    res.json({ count: total, page, limit, threads });
+    return res.json({ count: total, page, limit, threads });
   } catch (err) {
     console.error('Get all threads error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ Get threads by job code
+// Get threads by jobCode
+// GET /api/forum/job/:jobCode
 router.get('/job/:jobCode', async (req, res) => {
   try {
-    const threads = await ForumThread.find({ jobCode: req.params.jobCode })
-      .sort({ pinned: -1, createdAt: -1 })
-      .lean();
-    res.json(threads);
+    const jobCode = req.params.jobCode;
+    const threads = await ForumThread.find({ jobCode }).sort({ pinned: -1, createdAt: -1 }).lean();
+    return res.json({ threads });
   } catch (err) {
     console.error('Get job threads error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ Get single thread by id
+// Get single thread
+// GET /api/forum/thread/:id
 router.get('/thread/:id', async (req, res) => {
   try {
     const thread = await ForumThread.findById(req.params.id).lean();
     if (!thread) return res.status(404).json({ error: 'Thread not found' });
-    res.json(thread);
+    return res.json({ thread });
   } catch (err) {
     console.error('Get thread error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ Add comment to a thread
+// Add comment
+// POST /api/forum/thread/:id/comment
 router.post('/thread/:id/comment', async (req, res) => {
   try {
     const { commenterName, text, commenterId } = req.body;
-    if (!commenterName || !text)
-      return res.status(400).json({ error: 'commenterName and text are required' });
+    if (!commenterName || !text) return res.status(400).json({ error: 'commenterName and text are required' });
 
     const thread = await ForumThread.findById(req.params.id);
     if (!thread) return res.status(404).json({ error: 'Thread not found' });
+    if (thread.closed) return res.status(403).json({ error: 'Thread is closed' });
 
     thread.comments.push({
       commenterName,
       commenterId: commenterId || null,
-      text,
+      text
     });
 
+    thread.updatedAt = new Date();
     await thread.save();
-    res.status(201).json({ message: 'Comment added', comments: thread.comments });
+    return res.status(201).json({ message: 'Comment added', comments: thread.comments });
   } catch (err) {
     console.error('Add comment error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

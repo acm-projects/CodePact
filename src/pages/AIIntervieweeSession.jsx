@@ -1,7 +1,7 @@
 // src/pages/AIIntervieweeSession.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx";
+import LoggedInNavBar from "../components/nav/LoggedInNavbar.jsx";
 import Footer from "../components/Footer.jsx";
 import Timer from "../components/ai/Timer.jsx";
 import CodeEditor from "../components/ai/CodeEditor.jsx";

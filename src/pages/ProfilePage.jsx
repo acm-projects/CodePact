@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import LoggedInNavbar from "../components/nav/LoggedInNavBar";
+import LoggedInNavbar from "../components/nav/LoggedInNavbar";
 import Footer from "../components/Footer";
 import {
   BACKGROUND_COLOR,

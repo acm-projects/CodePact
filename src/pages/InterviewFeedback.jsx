@@ -1,7 +1,7 @@
 // src/pages/InterviewFeedback.jsx
 import React, { useMemo } from "react";
 import { useLocation } from "react-router-dom";
-import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx";
+import LoggedInNavBar from "../components/nav/LoggedInNavbar.jsx";
 import Footer from "../components/Footer.jsx";
 import {
   BACKGROUND_COLOR,

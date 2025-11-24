@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import LoggedInNavbar from "../components/nav/LoggedInNavBar";
+import LoggedInNavbar from "../components/nav/LoggedInNavbar";
 import Footer from "../components/Footer";
 import NotificationCard from "../components/reminders/NotificationCard";
 import {

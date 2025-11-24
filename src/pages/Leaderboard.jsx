@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
-import LoggedInNavbar from "../components/nav/LoggedInNavBar";
+import LoggedInNavbar from "../components/nav/LoggedInNavbar";
 import {
   BACKGROUND_COLOR,
   ACCENT_GRADIENT,

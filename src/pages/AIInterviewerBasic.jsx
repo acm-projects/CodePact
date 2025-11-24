@@ -1,7 +1,7 @@
 // src/pages/AIInterviewerBasic.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx"; // or LoggedInNavbar (match your filename)
+import LoggedInNavBar from "../components/nav/LoggedInNavbar.jsx"; // or LoggedInNavbar (match your filename)
 import Footer from "../components/Footer.jsx";
 import Timer from "../components/ai/Timer.jsx";
 import CodeEditor from "../components/ai/CodeEditor.jsx";

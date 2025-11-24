@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
-import LoggedInNavbar from "../components/nav/LoggedInNavBar";
-import { groupAPI } from "../utils/api";
+import LoggedInNavbar from "../components/nav/LoggedInNavbar"; // Corrected casing
+// import { groupAPI } from "../utils/api"; // Removed unused import
 
 import {
   BACKGROUND_COLOR,

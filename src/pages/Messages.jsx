@@ -10,7 +10,7 @@ import {
 } from "../utils/constants";
 import { initSocket, getSocket } from "../socket";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "http://localhost:8000";
 
 export default function Messages() {
   const [threads, setThreads] = useState([]);

@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CodePact Group Chat</title>
+  <style>
+    :root{
+      --bg:#0a0f1e; --panel:#0f162a; --panel-2:#0b1222; --muted:#97a6be; --text:#e8eef6; --primary:#0ea5e9; --accent:#6ea8fe; --line:#22304a;
+      --chip:#13233a; --chip-border:#2a4166; --green:#2ecc71; --red:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
+    a{color:#8ec7ff}
+    .hidden{display:none}
+    /* Top Bar */
+    .top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0f1830 0,#0a0f1e 100%)}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:700}
+    .brand svg{width:26px;height:26px}
+    .nav{display:flex;gap:10px;flex-wrap:wrap}
+    .nav button{border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:8px 12px;border-radius:12px;font-size:13px}
+    .nav button.active{background:#0f203a}
+    .user{display:flex;align-items:center;gap:10px;color:var(--muted)}
+    .avatar{width:28px;height:28px;border-radius:999px;background:#1d2944;display:grid;place-items:center;font-size:12px;border:1px solid #2b3c60}
+
+    main{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 64px)}
+
+    /* Left Column */
+    aside{border-right:1px solid var(--line);background:var(--panel);padding:18px}
+    .roomTitle{font-size:18px;font-weight:800;margin:6px 0 18px}
+    .section{margin:18px 0}
+    .section h3{margin:0 0 10px;font-size:12px;letter-spacing:.08em;color:var(--muted)}
+    .member{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px}
+    .resource{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px}
+    .startBtn{margin-top:12px;width:100%;background:#2a59ff;border:none;color:white;font-weight:600;padding:12px;border-radius:12px;cursor:pointer}
+
+    /* Conversations list */
+    .convs{display:flex;flex-direction:column;gap:6px;max-height:35vh;overflow:auto}
+    .conv{padding:10px;border:1px solid var(--line);background:#0b1530;border-radius:10px;cursor:pointer}
+    .conv.active{outline:2px solid #2a59ff}
+
+    /* Chat Column */
+    .chat{display:flex;flex-direction:column;background:#050a15}
+    .chatHeader{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+    .crumb{font-size:12px;color:var(--muted)}
+    .messages{flex:1;overflow:auto;padding:18px 24px;display:flex;flex-direction:column;gap:18px}
+    .bubble{display:flex;gap:12px}
+    .pfp-md{width:36px;height:36px;border-radius:999px;background:#16243e;border:1px solid #2b3c60;display:grid;place-items:center;font-weight:700}
+    .bubble .content{max-width:820px}
+    .bubble .name{font-weight:800;margin-bottom:4px}
+    .bubble .text{background:#0b1530;border:1px solid #1c2a4a;color:var(--text);padding:12px 14px;border-radius:14px;line-height:1.45}
+
+    .composer{border-top:1px solid var(--line);padding:12px 16px;background:#081226}
+    .composeRow{display:flex;gap:8px;align-items:center}
+    .iconBtn{min-width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:#0b1530;color:var(--text);display:grid;place-items:center;cursor:pointer}
+    .inputWrap{flex:1;}
+    .inputWrap input{width:100%;height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#0b1530;color:var(--text)}
+    .sendBtn{min-width:56px;height:44px;border-radius:12px;border:none;background:#1f9fff;color:#021225;font-weight:800;cursor:pointer}
+    .typing{height:18px;color:var(--muted);padding:6px 4px 0}
+
+    /* Tiny settings pop */
+    .settings{position:fixed;right:12px;bottom:12px}
+    .gear{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:#0b1530;color:#9fb7d8;cursor:pointer}
+    .card{position:absolute;right:0;bottom:54px;width:320px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#0a1224}
+    .card input{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0b1530;color:var(--text)}
+    .status{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <!-- Top branding / nav -->
+  <div class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-2 8H8L6 8z" stroke="#7fb4ff"/><circle cx="12" cy="6" r="2" stroke="#7fb4ff"/><circle cx="12" cy="20" r="2" stroke="#7fb4ff"/></svg>
+      <span>CodePact</span>
+    </div>
+    <div class="nav">
+      <button>Home</button>
+      <button>Squads</button>
+      <button>Public Forum</button>
+      <button class="active">Messages</button>
+      <button>AI Interviewer</button>
+      <button>Reminders & Notifications</button>
+      <button>Squad Creation</button>
+    </div>
+    <div class="user">
+      <span id="userName">—</span>
+      <div class="avatar">👤</div>
+    </div>
+  </div>
+
+  <main>
+    <!-- Left side -->
+    <aside>
+      <div class="roomTitle" id="roomTitle">The Algorithm Avengers</div>
+
+      <div class="section">
+        <h3>CONVERSATIONS</h3>
+        <div id="conversations" class="convs"></div>
+      </div>
+
+      <div class="section">
+        <h3>MEMBERS</h3>
+        <div id="members">
+          <div class="member">(join a conversation)</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>SHARED RESOURCES</h3>
+        <div class="resource">📎 <a href="#">LeetCode #123: Two Sum</a></div>
+        <div class="resource">📄 <a href="#">Interview-Prep.pdf</a></div>
+      </div>
+
+      <button class="startBtn">➕ Start New Chat</button>
+    </aside>
+
+    <!-- Chat area -->
+    <section class="chat">
+      <div class="chatHeader">
+        <div class="crumb">Group Chat Page</div>
+        <div id="netStatus" class="status" style="margin-left:12px"></div>
+      </div>
+
+      <div id="messages" class="messages"></div>
+      <div id="typingBar" class="typing"></div>
+
+      <div class="composer">
+        <form id="sendForm" class="composeRow">
+          <button type="button" class="iconBtn" title="Attach">📎</button>
+          <button type="button" class="iconBtn" title="Code">&lt;/&gt;</button>
+          <div class="inputWrap">
+            <input id="msgInput" placeholder="Write a message..." autocomplete="off" />
+          </div>
+          <button class="sendBtn" title="Send">▶</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Small settings for backend URL -->
+  <div class="settings">
+    <button id="gear" class="gear">⚙️</button>
+    <div id="settingsCard" class="card hidden">
+      <div style="font-weight:700;margin-bottom:6px">Backend Base URL</div>
+      <input id="backend" placeholder="e.g. http://localhost:8000" />
+      <div class="status" style="margin-top:6px">
+        Defaults to <code>http://localhost:8000</code>. Change if your backend runs elsewhere.
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO client CDN -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script>
+    // ===== Config =====
+    const backendInput = document.getElementById('backend');
+    const DEFAULT_BACKEND = 'http://localhost:8000';
+    const savedBase = localStorage.getItem('cp_backend_base') || DEFAULT_BACKEND;
+    backendInput.value = savedBase;
+    const BASE = () => (backendInput.value.trim() || DEFAULT_BACKEND).replace(/\/$/, '');
+
+    // UI els
+    const els = {
+      userName: document.getElementById('userName'),
+      conversations: document.getElementById('conversations'),
+      members: document.getElementById('members'),
+      roomTitle: document.getElementById('roomTitle'),
+      messages: document.getElementById('messages'),
+      typingBar: document.getElementById('typingBar'),
+      sendForm: document.getElementById('sendForm'),
+      msgInput: document.getElementById('msgInput'),
+      netStatus: document.getElementById('netStatus'),
+      gear: document.getElementById('gear'),
+      settingsCard: document.getElementById('settingsCard'),
+    };
+
+    let socket = null; let userId = null; let currentConv = null; let lastLoadedMessageId = null; let typingTimer = null;
+
+    // ===== Helpers =====
+    const escapeHtml = (s)=> s?.replace(/[&<>"']/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[t]));
+    const linkify = (s)=> s.replace(/(https?:\/\/[^\s]+)/g, (u)=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+    const fmtTime = (ts)=> { try { return new Date(ts).toLocaleTimeString(); } catch { return '' } };
+
+    function setStatus(t, ok){
+      els.netStatus.textContent = t;
+      els.netStatus.style.color =
+        ok === true ? '#2ecc71' :
+        ok === false ? '#ff6b6b' :
+        'var(--muted)';
+    }
+
+    function saveBase(){
+      localStorage.setItem('cp_backend_base', backendInput.value.trim());
+    }
+
+    function renderConversations(list){
+      els.conversations.innerHTML = '';
+      list.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'conv' + (currentConv===c._id ? ' active' : '');
+        div.innerHTML = `<div style="font-weight:700">${escapeHtml(c.name||'Untitled')}</div>
+                         <div class="status">${new Date(c.updatedAt).toLocaleString()}</div>`;
+        div.addEventListener('click', () => selectConversation(c));
+        els.conversations.appendChild(div);
+      });
+    }
+
+    function renderMembers(list){
+      els.members.innerHTML = '';
+      if(!list || !list.length){ els.members.textContent = '(no members)'; return; }
+      list.forEach(m => {
+        const row = document.createElement('div'); row.className = 'member';
+        row.innerHTML = `<span class="pfp">🟦</span><span>${escapeHtml(m.name||m.email||m._id)}</span>`;
+        els.members.appendChild(row);
+      });
+    }
+
+    function addMessage(m){
+      const mine = (m.sender === userId || m.sender === 'me');
+      const row = document.createElement('div'); row.className = 'bubble';
+      const pfp = document.createElement('div'); pfp.className = 'pfp-md'; pfp.textContent = mine ? 'You' : (m.senderName || 'U');
+      const content = document.createElement('div'); content.className = 'content';
+      const name = document.createElement('div'); name.className = 'name'; name.textContent = mine ? 'You' : (m.senderName || 'User');
+      const text = document.createElement('div'); text.className = 'text'; text.innerHTML = m.text ? linkify(escapeHtml(m.text)) : '';
+      const meta = document.createElement('div'); meta.className = 'status'; meta.textContent = fmtTime(m.createdAt || Date.now());
+      content.appendChild(name); content.appendChild(text); content.appendChild(meta);
+      row.appendChild(pfp); row.appendChild(content);
+      els.messages.appendChild(row);
+      els.messages.scrollTop = els.messages.scrollHeight;
+      lastLoadedMessageId = m._id || lastLoadedMessageId;
+    }
+
+    async function api(path){
+      const r = await fetch(`${BASE()}${path}`, { credentials: 'include' });
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    }
+
+    async function loadMe(){
+      const { data } = await api('/api/auth/me');
+      userId = data._id;
+      els.userName.textContent = data.name || data.email || 'Me';
+    }
+
+    async function loadConversations(){
+      const { data } = await api('/api/conversations');
+      renderConversations(data);
+      // auto-open last used
+      const last = localStorage.getItem('cp_last_conv');
+      const found = data.find(c => c._id === last) || data[0];
+      if(found) selectConversation(found);
+    }
+
+    async function selectConversation(conv){
+      if(currentConv === conv._id) return;
+      currentConv = conv._id;
+      localStorage.setItem('cp_last_conv', currentConv);
+      document.querySelectorAll('.conv').forEach(n=> n.classList.remove('active'));
+      // Update title and members (optional endpoint below uses populated members)
+      els.roomTitle.textContent = conv.name || 'Conversation';
+      if(conv.members) renderMembers(conv.members); else renderMembers([]);
+      els.messages.innerHTML = '';
+      lastLoadedMessageId = null;
+      if(socket && socket.connected) socket.emit('conversation:join', { conversationId: currentConv });
+      await fetchHistory(true);
+    }
+
+    async function fetchHistory(initial=false){
+      if(!currentConv) return;
+      let url = `/api/conversations/${currentConv}/messages?limit=25`;
+      if(!initial && lastLoadedMessageId) url += `&before=${encodeURIComponent(lastLoadedMessageId)}`;
+      const { data } = await api(url);
+      (data||[]).forEach(m=> addMessage(m));
+    }
+
+    function connectSocket(){
+      if(socket){ try{ socket.disconnect(); }catch{} }
+      socket = io(BASE(), { withCredentials: true, autoConnect: false });
+      socket.on('connect', ()=> setStatus(`Connected (${socket.id})`, true));
+      socket.on('disconnect', (r)=> setStatus(`Disconnected (${r})`));
+      socket.on('connect_error', (e)=> setStatus(`Connect error: ${e.message}`, false));
+      socket.on('message:new', (m)=> { if(m.conversation===currentConv) addMessage(m); });
+      socket.on('typing', ({ userId: uid, isTyping, conversationId })=>{
+        if(conversationId!==currentConv || uid===userId) return;
+        els.typingBar.textContent = isTyping ? 'Someone is typing…' : '';
+        if(isTyping){
+          clearTimeout(typingTimer);
+          typingTimer = setTimeout(()=> els.typingBar.textContent='', 1500);
+        }
+      });
+      socket.connect();
+    }
+
+    // send
+    els.sendForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      if(!socket || !socket.connected) return setStatus('Connect first', false);
+      if(!currentConv) return setStatus('Pick a conversation', false);
+      const text = els.msgInput.value.trim();
+      if(!text) return;
+      const tempId = crypto.randomUUID();
+      addMessage({ _id: tempId, tempId, sender: 'me', text, createdAt: new Date().toISOString() });
+      socket.emit('message:send', { conversationId: currentConv, text, tempId }, (ack)=>{
+        if(!ack?.ok){
+          setStatus('send failed: '+(ack?.error||'unknown'), false);
+        }
+      });
+      els.msgInput.value='';
+    });
+
+    els.msgInput.addEventListener('input', ()=>{
+      if(!socket||!socket.connected||!currentConv) return;
+      socket.emit('typing', { conversationId: currentConv, isTyping:true });
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(()=> socket.emit('typing', { conversationId: currentConv, isTyping:false }), 1200);
+    });
+
+    // settings toggle
+    els.gear.addEventListener('click', ()=>{
+      els.settingsCard.classList.toggle('hidden');
+    });
+
+    backendInput.addEventListener('change', ()=>{
+      saveBase();
+      location.reload();
+    });
+
+    // ===== Boot =====
+    (async function boot(){
+      try{
+        await loadMe();
+        connectSocket();
+        await loadConversations();
+        setStatus('Ready');
+      }catch(e){
+        console.error(e);
+        setStatus('Auth required or server down', false);
+      }
+    })();
+  </script>
+</body>
+</html>

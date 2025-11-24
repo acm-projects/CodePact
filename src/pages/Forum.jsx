@@ -19,7 +19,7 @@ export default function PublicForum() {
   useEffect(() => {
     const fetchThreads = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/forum/threads");
+        const res = await axios.get("http://localhost:8000/api/forum/threads");
         setThreads(res.data.threads || []);
       } catch (err) {
         console.error("Error fetching threads:", err);

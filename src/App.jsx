@@ -15,6 +15,7 @@ import Congratulations from "./pages/Congratulations.jsx";
 import Leaderboard from "./pages/Leaderboard.jsx";
 import Messages from "./pages/Messages.jsx";
 import Forum from "./pages/Forum.jsx";
+import ThreadView from "./pages/ThreadView.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import RemindersPage from "./pages/RemindersPage.jsx";
 import Squads from "./pages/Squads.jsx";
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/public-forum" element={<Forum />} />
+            <Route path="/public-forum/thread/:id" element={<ThreadView />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/reminders" element={<RemindersPage />} />
             <Route path="/squads" element={<Squads />} />

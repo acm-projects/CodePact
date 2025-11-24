@@ -47,9 +47,7 @@ exports.addInterviewAnswer = async (req, res) => {
   }
 };
 
-/**
- * Simple chat with AI (CS Interview Assistant)
- */
+
 exports.chat = async (req, res) => {
   const { text } = req.query;
   console.log(text);

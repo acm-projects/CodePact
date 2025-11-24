@@ -20,6 +20,22 @@ export default function Squads() {
   const [groupMembers, setGroupMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
 
+
+  async function copyJoinCode()
+  {
+    try {
+      const result = await fetch(`http://localhost:3000/getGroupCode?groupName=${encodeURIComponent(currentGroupName)}`);
+      const data = await result.json();
+      console.log(data.joinCode);
+      await navigator.clipboard.writeText(data.joinCode);
+      alert(`Join code copied to clipboard: ${data.joinCode}`);
+    }
+    catch(err)
+    {
+      console.error("Error copying join code:", err);
+    }
+  }
+
   async function loadGroupList() {
     try {
       setLoading(true);
@@ -255,6 +271,9 @@ export default function Squads() {
   const [squads, setSquads] = useState(INITIAL_SQUADS);
   const [selectedSquadId, setSelectedSquadId] = useState("s1");
 
+  const currentGroupName = selectedGroupName || (squads[selectedSquadId]?.name ?? "");
+  console.log("IMPORTANT: "+currentGroupName);
+
   const squad = selectedGroupName && userGroups.includes(selectedGroupName) 
     ? { 
         id: selectedGroupName, 
@@ -470,7 +489,7 @@ export default function Squads() {
               >
                 Manage Members
               </button>
-              <button className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold shadow-lg shadow-blue-600/20 transition">
+              <button className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold shadow-lg shadow-blue-600/20 transition" onClick={copyJoinCode}>
                 Copy Invite Link
               </button>
             </div>

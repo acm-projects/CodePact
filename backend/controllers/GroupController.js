@@ -156,3 +156,28 @@ exports.groupJoinCode = async (req, res) => {
     res.status(500).send("Error joining group with code");
   }
 }
+
+exports.getJoinCode = async (req, res) => {
+  const {groupName} = req.query;
+  console.log(groupName);
+  try
+  {
+    const client = await connectMongo();
+    const groups = client.db("cluster0").collection("groups");
+    const foundGroup = await groups.findOne({name:groupName})
+    if(!foundGroup)
+    {
+      return res.status(404).json({success:false, message: "Group not found"});
+    }
+    else
+    {
+      console.log(foundGroup.code);
+      res.json({success:true, joinCode: foundGroup.code});
+    }
+  } 
+  catch(err)
+  {
+    console.error(err);
+    res.status(500).send("Error getting join code");
+  }
+}

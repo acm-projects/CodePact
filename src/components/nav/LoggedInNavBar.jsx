@@ -1,7 +1,7 @@
 // src/components/nav/LoggedInNavBar.jsx
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
-import { User, Bell } from "lucide-react";
+import { User, Bell, Menu, X } from "lucide-react";
 import AddActivityModal from "../activity/AddActivityModal";
 import {
   BACKGROUND_COLOR,
@@ -10,6 +10,8 @@ import {
   BORDER_COLOR,
 } from "../../utils/constants";
 import { useAuth } from "../../context/AuthContext";
+
+import CodePactLogo from "../../assets/codepact-logo.png";
 
 export default function LoggedInNavbar() {
   const tabs = [
@@ -20,23 +22,34 @@ export default function LoggedInNavbar() {
     { name: "AI Interviewer", path: "/interview" },
   ];
 
-  const [open, setOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
+  const [open, setOpen] = useState(false); // profile dropdown
+  const [addOpen, setAddOpen] = useState(false); // add activity modal
+  const [mobileOpen, setMobileOpen] = useState(false); // ✅ mobile menu
+
   const menuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+
   const navigate = useNavigate();
   const { logout } = useAuth(); // ⬅️ pull logout from AuthContext
 
   useEffect(() => {
     const onDown = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target))
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
+        setMobileOpen(false);
+      }
     };
+
     const onKey = (e) => {
       if (e.key === "Escape") {
         setOpen(false);
         setAddOpen(false);
+        setMobileOpen(false);
       }
     };
+
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -58,23 +71,26 @@ export default function LoggedInNavbar() {
         className={`sticky top-0 z-50 ${BACKGROUND_COLOR} ${BORDER_COLOR} border-b font-quicksand`}
       >
         <div className="w-full px-6 md:px-10">
-          <div className="flex items-center justify-between gap-6 py-6">
+          {/* Header row (height stays same) */}
+          <div className="flex items-center gap-6 py-6">
+            {/* Brand / Logo */}
             <Link
               to="/leaderboard"
-              className="flex items-center space-x-3 absolute left-6 md:left-10"
+              className="flex items-center gap-3 shrink-0 pr-4 md:pr-10"
+              onClick={() => setMobileOpen(false)}
             >
-              <div
-                className={`w-10 h-10 ${ACCENT_GRADIENT} rounded-lg flex items-center justify-center`}
-              >
-                <span className="font-bold text-white text-sm">CP</span>
-              </div>
-              <span className="font-audiowide text-white text-xl tracking-wide">
+              <img
+                src={CodePactLogo}
+                alt="CodePact Logo"
+                className="w-12 h-12 object-contain"
+              />
+              <span className="font-audiowide text-white text-xl tracking-wide whitespace-nowrap">
                 CODEPACT
               </span>
             </Link>
 
-            {/* Centered Tabs */}
-            <nav className="hidden md:flex items-center space-x-10 mx-auto">
+            {/* Desktop Tabs */}
+            <nav className="hidden md:flex items-center gap-10 flex-1 justify-center">
               {tabs.map((t) => (
                 <NavLink
                   key={t.name}
@@ -93,11 +109,10 @@ export default function LoggedInNavbar() {
               ))}
             </nav>
 
-            {/* Right side (buttons + icons) */}
-            <div className="flex items-center gap-3 ml-auto">
+            {/* Right side */}
+            <div className="flex items-center gap-3 ml-auto shrink-0">
               {/* Desktop action buttons */}
               <div className="hidden md:flex items-center gap-3">
-                {/* Assemble Squad */}
                 <button
                   onClick={() => navigate("/group-creation")}
                   className={`inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-white font-semibold transition shadow-md hover:brightness-110 ${ACCENT_GRADIENT}`}
@@ -106,7 +121,6 @@ export default function LoggedInNavbar() {
                   Assemble Squad
                 </button>
 
-                {/* Add Activity */}
                 <button
                   onClick={() => setAddOpen(true)}
                   className={`inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-white font-semibold transition shadow-md hover:brightness-110 ${ACCENT_GRADIENT}`}
@@ -116,7 +130,21 @@ export default function LoggedInNavbar() {
                 </button>
               </div>
 
-              {/* Mobile buttons */}
+              {/* Mobile hamburger (shows tabs) */}
+              <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className={`md:hidden inline-flex h-10 w-10 items-center justify-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-cyan-400 ${FEATURE_BG} ${BORDER_COLOR} border`}
+                aria-label="Toggle navigation"
+                title="Menu"
+              >
+                {mobileOpen ? (
+                  <X className="h-5 w-5 text-white" />
+                ) : (
+                  <Menu className="h-5 w-5 text-white" />
+                )}
+              </button>
+
+              {/* Mobile quick buttons */}
               <div className="md:hidden flex items-center gap-2">
                 <button
                   onClick={() => navigate("/squads")}
@@ -136,18 +164,18 @@ export default function LoggedInNavbar() {
                 </button>
               </div>
 
+              {/* Notifications + profile */}
               <div className="flex items-center gap-3 pl-3 ml-3 border-l border-gray-700">
-                {/* Notifications */}
                 <Link
                   to="/notifications"
                   aria-label="Notifications"
                   title="Notifications"
                   className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-cyan-400 ${FEATURE_BG} ${BORDER_COLOR} border`}
+                  onClick={() => setMobileOpen(false)}
                 >
                   <Bell className="h-5 w-5 text-white" />
                 </Link>
 
-                {/* Profile Dropdown */}
                 <div ref={menuRef} className="relative">
                   <button
                     aria-haspopup="menu"
@@ -188,12 +216,38 @@ export default function LoggedInNavbar() {
             </div>
           </div>
 
-          {/* divider line */}
+          {/* Divider line */}
           <div className="h-[2px] bg-gray-700 opacity-70" />
+
+          {/* Mobile dropdown tabs (outside header row so height stays same) */}
+          {mobileOpen && (
+            <div
+              ref={mobileMenuRef}
+              className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl mt-3 mb-4 p-4 md:hidden`}
+            >
+              <nav className="flex flex-col gap-3">
+                {tabs.map((t) => (
+                  <NavLink
+                    key={t.name}
+                    to={t.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `px-3 py-2 rounded-lg transition font-medium ${
+                        isActive
+                          ? "text-white bg-cyan-500/15 border border-cyan-400/40"
+                          : "text-gray-300 hover:text-white hover:bg-white/5"
+                      }`
+                    }
+                  >
+                    {t.name}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Add Activity */}
       <AddActivityModal open={addOpen} onClose={() => setAddOpen(false)} />
     </>
   );

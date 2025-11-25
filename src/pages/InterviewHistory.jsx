@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx";
+import LoggedInNavBar from "../components/nav/LoggedInNavbar.jsx";
 import Footer from "../components/Footer.jsx";
 
 const STORAGE_KEY = "cp_interview_history_v1";

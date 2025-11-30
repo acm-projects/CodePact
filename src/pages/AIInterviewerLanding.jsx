@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState , useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx";
 import Panel from "../components/ai/Panel.jsx";
@@ -11,6 +12,8 @@ import {
   ACCENT_GRADIENT,
   GridOverlay,
 } from "../utils/constants";
+import { initSocket, getSocket } from "../socket";
+
 
 function genRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -35,6 +38,20 @@ export default function AIInterviewerLanding() {
   };
 
   const start = () => {
+    let socket = getSocket();
+    if(!socket)
+    {
+      initSocket();
+      socket = getSocket();
+    }
+    if(joinCode.trim())
+    {
+      socket.emit("joinRoom", {roomId:joinCode,role:role});
+    }
+    else{
+      socket.emit("joinRoom", {roomId:room,role:role});
+    }
+
     const base = destFor(role, withPrompts);
     const search = `?role=${encodeURIComponent(role)}&room=${encodeURIComponent(
       room

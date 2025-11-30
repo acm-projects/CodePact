@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const jwt = require('jsonwebtoken');
 
 exports.createUser = async (req, res) => {
     console.log("🟡 [SIGNUP BACKEND] ========== Signup attempt started ==========");
@@ -207,6 +208,21 @@ exports.userSignIn = async (req, res) => {
         message: 'Email / password does not match!',
       });
     }
+
+    const token = jwt.sign(
+      { id: user._id, name: user.name },
+      process.env.JWT_SECRET,  
+      { expiresIn: "1h" }      
+    );
+
+    res.cookie("cp_jwt", token, {
+      httpOnly: true,      
+      secure: false,       
+      sameSite: "lax",     
+      path: "/",
+      maxAge: 60 * 60 * 1000 
+    });
+
 
     console.log("✅ [LOGIN BACKEND] Password matches! Creating session...");
     const sessionUserObj = user.toObject();

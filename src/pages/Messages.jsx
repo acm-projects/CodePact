@@ -34,7 +34,7 @@ export default function Messages() {
 
   // 1) Fetch current user + init socket
   useEffect(() => {
-    initSocket();
+    //initSocket();
 
     async function fetchMe() {
       try {
@@ -138,7 +138,12 @@ export default function Messages() {
 
     fetchMessages();
 
-    const socket = getSocket();
+    let socket = getSocket();
+    if(!socket)
+    {
+      initSocket();
+      socket = getSocket();
+    }
     if (socket) {
       socket.emit("conversation:join", { conversationId: activeId });
     }
@@ -146,7 +151,12 @@ export default function Messages() {
 
   // 4) Listen for live incoming messages (with de-dupe on tempId)
   useEffect(() => {
-    const socket = initSocket();
+    let socket = getSocket();
+    if(!socket)
+    {
+      initSocket();
+      socket = getSocket();
+    }
 
     const handler = (msg) => {
       const convId = msg.conversation;
@@ -213,7 +223,7 @@ export default function Messages() {
     e.preventDefault();
     if (!draft.trim() || !activeId) return;
 
-    const socket = getSocket();
+    let socket = getSocket();
     if (!socket) return;
 
     const text = draft.trim();

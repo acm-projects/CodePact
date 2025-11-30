@@ -8,7 +8,7 @@ import CodeEditor from "../components/ai/CodeEditor.jsx";
 import Panel from "../components/ai/Panel.jsx";
 import ChatBubble from "../components/ai/chat/ChatBubble.jsx";
 import ChatInput from "../components/ai/chat/ChatInput.jsx";
-
+import { initSocket, getSocket } from "../socket"; 
 import {
   BACKGROUND_COLOR,
   FEATURE_BG,
@@ -24,6 +24,29 @@ function useQuery() {
 }
 
 export default function AIIntervieweeSession() {
+
+  const [latestQuestion, setLatestQuestion] = useState("");
+    useEffect(() => {
+      console.log("Rendering gooning");
+      const socket = getSocket();
+      if (!socket) {
+        console.error("Socket not initialized yet!");
+        return;
+      }
+      const handler = (data) => {
+        console.log("IM COOKED");
+        setLatestQuestion(data.question); // update state
+        console.log(data);
+      };
+  
+      socket.on("ask_next_question", handler);
+  
+      return () => {
+        socket.off("ask_next_question", handler);
+      };
+      
+    }, []);
+
   const q = useQuery();
   const role = (q.get("role") || "interviewee").toLowerCase();
   const room = q.get("room") || "—";
@@ -90,20 +113,8 @@ export default function AIIntervieweeSession() {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 sm:gap-5 p-3 sm:p-5 max-w-[1400px] w-full mx-auto">
         <div className="space-y-4 sm:space-y-5">
           <Panel title="Problem">
-            <p className="text-gray-300 mb-2">
-              Given an array of integers{" "}
-              <code
-                className={`${FEATURE_BG} ${BORDER_COLOR} border px-1 rounded`}
-              >
-                nums
-              </code>{" "}
-              and an integer{" "}
-              <code
-                className={`${FEATURE_BG} ${BORDER_COLOR} border px-1 rounded`}
-              >
-                target
-              </code>
-              , return indices of the two numbers that add up to target.
+            <p className="text-gray-300 mb-2 break-words">
+              Current Problem: {latestQuestion || "Waiting for the next question..."}
             </p>
           </Panel>
 

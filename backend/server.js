@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
+const bcrypt = require('bcryptjs');
+const User = require('./models/User');
 
 const http = require("http");            
 const { Server } = require("socket.io");     
@@ -84,36 +86,6 @@ app.get("/findCodeGroup",GroupController.groupJoinCode);
 app.get("/getGroupCode",GroupController.getJoinCode);
 app.get("/health", (_req, res) => res.json({ ok: true, at: "backend" }));
 
-// ======================= DEBUG ROUTE ======================= //
-app.get("/debug/users", async (req, res) => {
-
-  try {
-    const User = require("./models/user");
-    const users = await User.find({}).limit(10);
-    const usersData = users.map(u => {
-      const obj = u.toObject();
-      return {
-        _id: obj._id,
-        name: obj.name,
-        emailAdress: obj.emailAdress,
-        email: obj.email, // in case it's stored as 'email'
-        emailAddress: obj.emailAddress, // in case it's stored as 'emailAddress'
-        allKeys: Object.keys(obj),
-        hasEmailAdress: 'emailAdress' in obj,
-        hasEmail: 'email' in obj,
-        hasEmailAddress: 'emailAddress' in obj,
-      };
-    });
-    res.json({ 
-      totalUsers: users.length,
-      users: usersData,
-      message: "Check 'allKeys' to see actual field names in database"
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // ======================= USER ROUTES ======================= //
 app.get("/changeUserGroups", UserController.changeUserGroups);
 app.get("/userGroupList", UserController.userGroupList);
@@ -150,12 +122,143 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
 
+// ===================== GROUP CHAT ROUTES (Hopefully idrk) ======================= //
+function requireAuth(req, res, next) {
+  try {
+    const tok = req.cookies?.cp_jwt;
+    if (!tok) return res.status(401).json({ success: false, error: 'Unauthorized' });
+    const payload = jwt.verify(tok, process.env.JWT_SECRET);
+    req.user = payload;
+    next();
+  } catch {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+}
+
+// ===== Conversations & Messages =====
+app.get('/api/conversations', requireAuth, async (req, res) => {
+  const convs = await Conversation.find({ members: req.user.id })
+    .select('_id name updatedAt members')
+    .populate('members', 'email fullname name')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  res.json({ success: true, data: convs });
+});
+
+
+app.get('/api/conversations/:id/messages', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { limit = 25, before } = req.query;
+
+  const member = await Conversation.exists({ _id: id, members: req.user.id });
+  if (!member) return res.status(403).json({ success: false, error: 'Forbidden' });
+
+  const q = { conversation: id };
+  if (before) q._id = { $lt: before };
+
+  const msgs = await Message.find(q).sort({ _id: -1 }).limit(Number(limit)).lean();
+  res.json({ success: true, data: msgs.reverse() });
+});
+
+app.post('/api/dev/seed-conv', requireAuth, async (req, res) => {
+  try {
+    const { name, memberEmails = [] } = req.body || {};
+    const emails = Array.from(new Set([req.user.email, ...memberEmails])).map(e =>
+      String(e).toLowerCase().trim()
+    );
+
+    const users = [];
+    for (const email of emails) {
+      let u = await User.findOne({ email });
+      if (!u) {
+        const passwordHash = await bcrypt.hash('dev-placeholder-password', 10); // ✅ satisfy schema
+        u = await User.create({
+          email,
+          fullname: email.split('@')[0],
+          passwordHash,
+        });
+      }
+      users.push(u);
+    }
+
+    const conv = await Conversation.create({
+      name: name || 'New Conversation',
+      members: users.map(u => u._id),
+      lastMessageAt: new Date()
+    });
+
+    res.json({ success: true, data: conv });
+  } catch (e) {
+    console.error('seed-conv error:', e);
+    res.status(500).json({ success: false, error: e.message || 'internal error' });
+  }
+});
+
+app.post('/api/conversations/:id/add-member', requireAuth, async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'email required' });
+    }
+
+    const normalized = String(email).toLowerCase().trim();
+
+    // Only a member of the conversation can add others
+    const conv = await Conversation.findOne({
+      _id: req.params.id,
+      members: req.user.id,
+    });
+
+    if (!conv) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    let user = await User.findOne({ email: normalized });
+
+    // If user doesn't exist yet, create one with a dev placeholder password
+    if (!user) {
+      const passwordHash = await bcrypt.hash('dev-placeholder-password', 10);
+      user = await User.create({
+        email: normalized,
+        fullname: normalized.split('@')[0],
+        passwordHash,
+      });
+    }
+
+    // Add to conversation members if not already present
+    if (!conv.members.some((m) => m.toString() === user._id.toString())) {
+      conv.members.push(user._id);
+      await conv.save();
+    }
+
+    await conv.populate('members', 'email fullname name');
+
+    res.json({
+      success: true,
+      data: conv,
+      // Helpful info for you while testing:
+      note: 'If this email did not have an account, it was created with password "dev-placeholder-password".',
+    });
+  } catch (e) {
+    console.error('add-member error:', e);
+    res.status(500).json({ success: false, error: e.message || 'internal error' });
+  }
+});
+
+
+
+
+
 // ====================== SOCKET.IO ======================= //
 // Authenticate socket connection
+
+
 io.use((socket, next) => {
   try {
     const parsed = cookie.parse(socket.handshake.headers?.cookie || '');
     const tok = parsed.cp_jwt;
+    //console.log(tok);
     if (!tok) return next(new Error('Unauthorized'));
     const payload = jwt.verify(tok, process.env.JWT_SECRET);
     socket.user = { _id: payload.id, name: payload.name };
@@ -166,7 +269,60 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  console.log('Socket connected!', socket.id);
+});
+
+io.on('connect_error', (err) => {
+  console.log('Connection error:', err);
+});
+
+const rooms = {};
+io.on('connection', (socket) => {
   const userId = socket.user._id;
+  console.log("Connection MADE");
+  //New routes for interview part
+  socket.on("nextQuestion",({roomId,question}) =>
+  {
+    console.log("NEW QUESTION ASKED");
+    if(rooms[roomId] && rooms[roomId].interviewerId == userId)
+      {
+        rooms[roomId].currentQuestion = question;
+        io.to(roomId).emit("newQuestion", {question});
+        console.log("NEW QUESTION SENT: "+question);
+      }
+      io.to(roomId).emit("ask_next_question", { question });
+  });
+
+  socket.on("connect_error", (err) => {
+    console.log("Socket connection error:", err.message);
+  });
+
+  socket.on("joinRoom", ({roomId,role}) => {
+    if(!rooms[roomId])
+    {
+      rooms[roomId] = {messages:[],currentQuestion:null,interviewerId:null,intervieweeId:null};
+    }
+
+    if(role == "interviewer")
+    {
+      rooms[roomId].interviewerId = userId;
+    }
+
+    if(role == "interviewee")
+    {
+      rooms[roomId].intervieweeId = userId;
+    }
+    socket.join(roomId);
+    console.log("USER JOINED ROOM: "+roomId+" AS "+role);
+  });
+
+
+
+  socket.on("endInterview", ({roomId}) => {
+    io.to(roomId).emit("interviewEnded", {});
+    delete rooms[roomId];
+    console.log("ROOM HAS BEEN DELETED");
+  })
 
   // Join a conversation room
   socket.on('conversation:join', async ({ conversationId }) => {

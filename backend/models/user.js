@@ -102,4 +102,4 @@ userSchema.statics.isThisEmailInUse = async function(emailAddress) {
 
 // remove stray reference; methods are defined above if needed
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

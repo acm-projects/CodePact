@@ -1,5 +1,6 @@
 // src/pages/AIInterviewerBasic.jsx
 import React, { useEffect, useMemo, useState } from "react";
+
 import { useLocation } from "react-router-dom";
 import LoggedInNavBar from "../components/nav/LoggedInNavBar.jsx"; // or LoggedInNavbar (match your filename)
 import Footer from "../components/Footer.jsx";
@@ -8,6 +9,8 @@ import CodeEditor from "../components/ai/CodeEditor.jsx";
 import Panel from "../components/ai/Panel.jsx";
 import ChatBubble from "../components/ai/chat/ChatBubble.jsx";
 import ChatInput from "../components/ai/chat/ChatInput.jsx";
+import { initSocket, getSocket } from "../socket";
+
 
 import {
   BACKGROUND_COLOR,
@@ -17,12 +20,16 @@ import {
   GridOverlay,
 } from "../utils/constants";
 
-function useQuery() {
-  const { search } = useLocation();
-  return useMemo(() => new URLSearchParams(search), [search]);
-}
+
 
 export default function AIInterviewerBasic() {
+  
+  
+  function useQuery() {
+    const { search } = useLocation();
+    return useMemo(() => new URLSearchParams(search), [search]);
+  }
+
   const q = useQuery();
   const role = q.get("role") || "interviewer";
   const room = q.get("room") || "—";
@@ -76,19 +83,7 @@ export default function AIInterviewerBasic() {
           {/* Problem */}
           <Panel title="Problem">
             <p className="text-gray-300 mb-2">
-              Given an array of integers{" "}
-              <code
-                className={`${FEATURE_BG} ${BORDER_COLOR} border px-1 rounded`}
-              >
-                nums
-              </code>{" "}
-              and an integer{" "}
-              <code
-                className={`${FEATURE_BG} ${BORDER_COLOR} border px-1 rounded`}
-              >
-                target
-              </code>
-              , return indices of the two numbers that add up to target.
+            Latest question: {latestQuestion}
             </p>
           </Panel>
 

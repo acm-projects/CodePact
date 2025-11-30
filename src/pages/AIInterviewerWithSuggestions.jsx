@@ -10,6 +10,7 @@ import Panel from "../components/ai/Panel.jsx";
 import ChatBubble from "../components/ai/chat/ChatBubble.jsx";
 import ChatInput from "../components/ai/chat/ChatInput.jsx";
 import SuggestedQuestions from "../components/ai/chat/SuggestedQuestions.jsx";
+import { initSocket, getSocket } from "../socket";
 
 import {
   BACKGROUND_COLOR,
@@ -91,7 +92,10 @@ export default function AIInterviewerWithSuggestions() {
   ];
 
   const nextQuestion = () => {
+    const socket = getSocket();
+    
     const nextIdx = (questionIdx + 1) % SAMPLE_QUESTIONS.length;
+    socket.emit("nextQuestion", { question:SAMPLE_QUESTIONS[nextIdx].body,roomId: room });
     setQuestionIdx(nextIdx);
     setCurrent(SAMPLE_QUESTIONS[nextIdx]);
     setRemaining(PER_QUESTION_SECONDS);

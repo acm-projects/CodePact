@@ -14,6 +14,7 @@ import {
   GridOverlay,
 } from "../utils/constants";
 import { authAPI } from "../utils/api";
+import { initSocket, getSocket } from "../socket";
 
 export default function CreateAccount() {
   const [formData, setFormData] = useState({

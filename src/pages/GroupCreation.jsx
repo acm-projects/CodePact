@@ -1,8 +1,8 @@
+// src/pages/GroupCreation.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
 import LoggedInNavbar from "../components/nav/LoggedInNavBar";
-import { groupAPI } from "../utils/api";
 
 import {
   BACKGROUND_COLOR,
@@ -13,178 +13,189 @@ import {
 } from "../utils/constants";
 
 export default function GroupCreation() {
-  const [activeTab, setActiveTab] = useState("Create");
-  const [squadName, setSquadName] = useState("");
-  const [inviteFriends, setInviteFriends] = useState("");
-  const [joinCode, setJoinCode] = useState("");
   const navigate = useNavigate();
 
-  const tabs = [
-    "Home",
-    "Squads",
-    "Public Forum",
-    "Messages",
-    "AI Interviewer",
-    "Reminders & Notifications",
-  ];
+  const [activeTab, setActiveTab] = useState("Create");
+  const [squadName, setSquadName] = useState("");
+  const [joinCode, setJoinCode] = useState("");
 
-  const handleTabClick = (tab) => {
+  const changeTab = (tab) => {
     setActiveTab(tab);
-    if (tab === "Home") navigate("/leaderboard");
-    else if (tab === "Squads") navigate("/group-chat");
-    else if (tab === "Public Forum") navigate("/public-forum");
   };
 
+  // ================================================================
+  // CREATE NEW SQUAD (conversation)
+  // ================================================================
   const handleCreateSquad = async (e) => {
     e.preventDefault();
-  
-    if (!squadName.trim()) 
-      {
-      console.log("🟢 [CREATE GROUP FRONTEND] Validation failed: empty squad name");
+
+    if (!squadName.trim()) {
+      alert("Please enter a squad name.");
       return;
     }
-      else
-      {
-        const reply = await fetch(`http://localhost:3000/addGroupData?name=${encodeURIComponent(squadName.trim())}&members=0`);
-        const data = await reply.json();
-        console.log("Created Group");
-      }
-  };
 
-  const handleJoinSquad = async (e) => {
-    e.preventDefault();
-    if (joinCode.trim()) {
-      const reply = await fetch(`http://localhost:3000/findCodeGroup?code=${encodeURIComponent(joinCode.trim())}`);
-      const data = await reply.json();
-      console.log(data);
-      alert(`🔗 Joined squad with code: ${joinCode}`);
-      setJoinCode("");
+    try {
+      console.log("🟦 [CREATE SQUAD] Sending request...");
+
+      const response = await fetch("http://localhost:3000/api/dev/seed-conv", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: squadName }),
+      });
+
+      const data = await response.json();
+      console.log("🟦 [CREATE SQUAD] Response:", data);
+
+      if (data.success) {
+        alert(`🎉 Squad "${squadName}" created!`);
+        navigate("/messages"); // Redirect to messages (squad list)
+      } else {
+        alert("Could not create squad.");
+      }
+    } catch (err) {
+      console.error("❌ [CREATE SQUAD ERROR]", err);
+      alert("Error creating squad. Please try again.");
     }
   };
 
+  // ================================================================
+  // JOIN EXISTING SQUAD BY CODE
+  // ================================================================
+  const handleJoinSquad = async (e) => {
+    e.preventDefault();
+
+    if (!joinCode.trim()) {
+      alert("Enter a squad code.");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `http://localhost:3000/api/findCodeGroup?code=${encodeURIComponent(
+          joinCode.trim()
+        )}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      const data = await res.json();
+      console.log("🟧 [JOIN SQUAD RESPONSE]", data);
+
+      if (!data.success) {
+        alert("Invalid squad code.");
+        return;
+      }
+
+      alert("Joined squad successfully!");
+      navigate("/messages");
+    } catch (err) {
+      console.error("❌ [JOIN SQUAD ERROR]", err);
+      alert("Error joining squad.");
+    }
+  };
+
+  // ================================================================
+  // UI RETURN
+  // ================================================================
   return (
     <div
       className={`min-h-screen relative ${BACKGROUND_COLOR} text-white font-quicksand`}
     >
       <GridOverlay />
-
-      {/* Header */}
       <LoggedInNavbar />
 
-      {/* Main Section */}
-      <main className="max-w-5xl mx-auto px-6 py-7 text-center relative z-10">
-        <h1 className="text-3xl md:text-4xl font-audiowide mb-4">
+      <main className="max-w-5xl mx-auto px-6 py-10 text-center relative z-10">
+        <h1 className="text-3xl font-audiowide mb-4">
           START YOUR{" "}
           <span className={`bg-clip-text text-transparent ${ACCENT_GRADIENT}`}>
             COLLABORATION
           </span>
         </h1>
+
         <p className="text-gray-400 mb-10">
-          Create a new squad or join an existing one to team up with your
-          friends.
+          Create a new squad or join an existing one.
         </p>
 
         {/* Create / Join Tabs */}
-        <div className="relative flex justify-center items-center mb-8">
-          {/* Animated underline only (no gray line or padding gap) */}
-          <div
-            className={`absolute bottom-0 transition-all duration-500 ease-in-out ${
+        <div className="flex justify-center space-x-6 mb-8">
+          <button
+            onClick={() => changeTab("Create")}
+            className={`px-4 py-2 font-semibold border-b-2 ${
               activeTab === "Create"
-                ? "left-[calc(50%-100px)] w-[90px] bg-cyan-400 shadow-[0_0_8px_2px_rgba(0,255,255,0.4)]"
-                : "left-[calc(50%+10px)] w-[80px] bg-fuchsia-400 shadow-[0_0_8px_2px_rgba(255,0,255,0.4)]"
-            } h-[2px] rounded-full`}
-          ></div>
+                ? "text-cyan-400 border-cyan-400"
+                : "text-gray-400 border-transparent"
+            }`}
+          >
+            Create a Squad
+          </button>
 
-          <div className="relative flex space-x-6 bg-[#0a0a1a]">
-            <button
-              onClick={() => setActiveTab("Create")}
-              className={`px-5 py-2 rounded-t-md font-semibold text-sm border-b-2 transition-all duration-300 transform ${
-                activeTab === "Create"
-                  ? "text-cyan-400 border-cyan-400 shadow-[0_0_10px_rgba(0,255,255,0.4)] scale-105"
-                  : "text-gray-400 border-transparent hover:text-white hover:scale-105"
-              }`}
-            >
-              Create a Squad
-            </button>
-            <button
-              onClick={() => setActiveTab("Join")}
-              className={`px-5 py-2 rounded-t-md font-semibold text-sm border-b-2 transition-all duration-300 transform ${
-                activeTab === "Join"
-                  ? "text-fuchsia-400 border-fuchsia-400 shadow-[0_0_10px_rgba(255,0,255,0.4)] scale-105"
-                  : "text-gray-400 border-transparent hover:text-white hover:scale-105"
-              }`}
-            >
-              Join a Squad
-            </button>
-          </div>
+          <button
+            onClick={() => changeTab("Join")}
+            className={`px-4 py-2 font-semibold border-b-2 ${
+              activeTab === "Join"
+                ? "text-fuchsia-400 border-fuchsia-400"
+                : "text-gray-400 border-transparent"
+            }`}
+          >
+            Join a Squad
+          </button>
         </div>
 
-        {/* Dynamic Form (Create / Join) */}
+        {/* Create / Join Card */}
         <div
-          className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl max-w-md mx-auto p-8 shadow-lg hover:shadow-cyan-500/10 transition-shadow duration-300 text-left`}
+          className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl max-w-md mx-auto p-8 text-left shadow-xl`}
         >
-          {activeTab === "Create" ? (
+          {/* ====================== CREATE ====================== */}
+          {activeTab === "Create" && (
             <>
-              <h2 className="text-xl font-bold mb-6 text-white">
-                Create a Squad
-              </h2>
+              <h2 className="text-xl font-bold mb-6">Create a Squad</h2>
+
               <form onSubmit={handleCreateSquad} className="space-y-5">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Squad Name
-                  </label>
+                  <label className="text-sm text-gray-400">Squad Name</label>
                   <input
                     type="text"
                     value={squadName}
                     onChange={(e) => setSquadName(e.target.value)}
                     placeholder="e.g., The Algorithm Avengers"
-                    className={`${FEATURE_BG} border ${BORDER_COLOR} rounded-lg w-full px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 text-white`}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Invite Friends
-                  </label>
-                  <input
-                    type="text"
-                    value={inviteFriends}
-                    onChange={(e) => setInviteFriends(e.target.value)}
-                    placeholder="Search for friends by username..."
-                    className={`${FEATURE_BG} border ${BORDER_COLOR} rounded-lg w-full px-4 py-3 focus:outline-none focus:border-fuchsia-400 focus:ring-1 focus:ring-fuchsia-400 text-white`}
+                    className={`${FEATURE_BG} border ${BORDER_COLOR} rounded-lg w-full px-4 py-3 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400`}
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className={`${ACCENT_GRADIENT} w-full py-3 rounded-lg font-semibold text-white shadow-md hover:brightness-110 transition-all duration-200`}
+                  className={`${ACCENT_GRADIENT} w-full py-3 rounded-lg font-semibold`}
                 >
                   Create Squad
                 </button>
               </form>
             </>
-          ) : (
+          )}
+
+          {/* ====================== JOIN ====================== */}
+          {activeTab === "Join" && (
             <>
-              <h2 className="text-xl font-bold mb-6 text-white">
-                Join a Squad
-              </h2>
+              <h2 className="text-xl font-bold mb-6">Join a Squad</h2>
+
               <form onSubmit={handleJoinSquad} className="space-y-5">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Squad Code or Invitation Link
+                  <label className="text-sm text-gray-400">
+                    Squad Code or Link
                   </label>
                   <input
                     type="text"
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value)}
-                    placeholder="Paste the code or link here..."
-                    className={`${FEATURE_BG} border ${BORDER_COLOR} rounded-lg w-full px-4 py-3 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 text-white`}
+                    placeholder="Enter squad code..."
+                    className={`${FEATURE_BG} border ${BORDER_COLOR} rounded-lg w-full px-4 py-3 focus:border-fuchsia-400 focus:ring-1 focus:ring-fuchsia-400`}
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className={`${ACCENT_GRADIENT} w-full py-3 rounded-lg font-semibold text-white shadow-md hover:brightness-110 transition-all duration-200`}
+                  className={`${ACCENT_GRADIENT} w-full py-3 rounded-lg font-semibold`}
                 >
                   Join Squad
                 </button>

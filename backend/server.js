@@ -1,367 +1,438 @@
+// backend/server.js
+
 require("dotenv").config();
-const mongoose = require("mongoose");
+
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
-const session = require("express-session");
-const bcrypt = require('bcryptjs');
-const User = require('./models/User');
+const http = require("http");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const cookie = require("cookie");
+const { Server } = require("socket.io");
 
-const http = require("http");            
-const { Server } = require("socket.io");     
-const cookie = require("cookie");              
-const jwt = require("jsonwebtoken"); 
-const ALLOWED_ORIGINS = ["http://localhost:5176"];
+// ===== Models =====
+const User = require("./models/User");
+const Conversation = require("./models/Conversation");
+const Message = require("./models/Message");
 
-// ======================= CONTROLLERS ======================= //
-const AuthController = require("./controllers/AuthController.js");
-const GroupController = require("./controllers/GroupController.js");
-const UserController = require("./controllers/UserController.js");
-const AdminController = require("./controllers/AdminController.js");
-const InviteController = require("./controllers/InviteController.js");
-const AIController = require("./controllers/AIController.js");
-const UserDetails = require("./controllers/UserDetails.js");
-const forumRoutes = require('./routes/forum');
-const adzunaRoutes = require('./routes/adzuna');
-const notificationRoutes = require('./routes/notificationsRoutes');
-const reminderRoutes = require('./routes/remindersRoutes');
-const Conversation = require('./models/Conversation');
-const Message = require('./models/Message');
-
-
+// ===== App & Server =====
 const app = express();
 const server = http.createServer(app);
 const PORT = 3000;
 
-const uri = process.env.MONGO_API_KEY;
-console.log("Mongo URI:", uri);
+// ===== CORS / Socket origins =====
+const ALLOWED_ORIGINS = ["http://localhost:5176"];
 
-const io = new Server(server, {
-  cors: { origin: ALLOWED_ORIGINS, credentials: true },
-  pingTimeout: 20000
-});
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false },
-  })
-);
-
-// ======================= MIDDLEWARE ======================= //
+// ===== Middleware =====
 app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5176",
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   })
 );
-app.use(express.static("src"));
 
-app.get("/", (req, res) => {
-  res.send("Backend is running!");
-});
-
-// ======================= MONGODB CONNECTION ======================= //
+// ===== Mongo Connect =====
 mongoose
-  .connect(process.env.MONGO_API_KEY, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_API_KEY)
   .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// ======================= AUTH ROUTES ======================= //
-app.post("/signup", AuthController.createUser);
-app.post("/signin", AuthController.userSignIn);
+// ===== Helpers: JWT & Cookies =====
+function signJwt(user) {
+  return jwt.sign(
+    {
+      id: user._id,
+      name: user.name,
+      emailAddress: user.emailAddress,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
 
-// ======================= GROUP ROUTES ======================= //
-app.get("/addGroupData", GroupController.addGroupData);
-app.get("/getGroupList", GroupController.getGroupList);
-app.get("/searchForEntry", GroupController.searchForEntry);
-app.get("/getMembers", GroupController.getMembers);
-app.get("/deleteUserFromGroup", GroupController.deleteUserFromGroup);
-app.get("/findCodeGroup",GroupController.groupJoinCode);
-app.get("/getGroupCode",GroupController.getJoinCode);
-app.get("/health", (_req, res) => res.json({ ok: true, at: "backend" }));
+function setAuthCookie(res, token) {
+  res.cookie("cp_jwt", token, {
+    httpOnly: true,
+    secure: false, // true in production HTTPS
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+}
 
-// ======================= USER ROUTES ======================= //
-app.get("/changeUserGroups", UserController.changeUserGroups);
-app.get("/userGroupList", UserController.userGroupList);
-app.get("/deleteEntry", UserController.deleteEntry);
-app.get("/searchForUser", UserController.searchForUser);
-
-// ======================= ADMIN ROUTES ======================= //
-app.get("/getAdminGroupList", AdminController.getAdminGroupList);
-
-// ======================= INVITE ROUTES ======================= //
-app.get("/getInvites", InviteController.getInvites);
-app.get("/makeInvite", InviteController.makeInvite);
-app.get("/acceptInvite", InviteController.acceptInvite);
-
-// ======================= AI ROUTES ======================= //
-app.get("/addInterviewAnswer", AIController.addInterviewAnswer);
-app.get("/chatWithInterviewer", AIController.chatWithInterviewer);
-app.get("/chat", AIController.chat);
-app.get("/finishInterview", AIController.getSummary);
-
-// ======================= USER DETAILS ======================= //
-app.get("/getUserDetails", UserDetails.fetchCurrentUser);
-
-// ======================= ISHMEET+ADI ROUTES ======================= //
-app.use('/api/forum', forumRoutes);
-app.use('/api/adzuna', adzunaRoutes);
-
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/reminders', reminderRoutes);
-
-
-// ======================= SERVER START ======================= //
-server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
-
-// ===================== GROUP CHAT ROUTES (Hopefully idrk) ======================= //
+// ===== Auth Middleware =====
 function requireAuth(req, res, next) {
   try {
-    const tok = req.cookies?.cp_jwt;
-    if (!tok) return res.status(401).json({ success: false, error: 'Unauthorized' });
-    const payload = jwt.verify(tok, process.env.JWT_SECRET);
-    req.user = payload;
+    const token = req.cookies?.cp_jwt;
+
+    if (!token) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Unauthorized (no token)" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
-  } catch {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  } catch (e) {
+    console.error("requireAuth error:", e.message);
+    return res
+      .status(401)
+      .json({ success: false, error: "Unauthorized (invalid token)" });
   }
 }
 
-// ===== Conversations & Messages =====
-app.get('/api/conversations', requireAuth, async (req, res) => {
-  const convs = await Conversation.find({ members: req.user.id })
-    .select('_id name updatedAt members')
-    .populate('members', 'email fullname name')
-    .sort({ updatedAt: -1 })
-    .lean();
+// ====================== AUTH ROUTES ==========================
 
-  res.json({ success: true, data: convs });
-});
-
-
-app.get('/api/conversations/:id/messages', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const { limit = 25, before } = req.query;
-
-  const member = await Conversation.exists({ _id: id, members: req.user.id });
-  if (!member) return res.status(403).json({ success: false, error: 'Forbidden' });
-
-  const q = { conversation: id };
-  if (before) q._id = { $lt: before };
-
-  const msgs = await Message.find(q).sort({ _id: -1 }).limit(Number(limit)).lean();
-  res.json({ success: true, data: msgs.reverse() });
-});
-
-app.post('/api/dev/seed-conv', requireAuth, async (req, res) => {
+// Signup (frontend calls /api/signup; we also expose /signup for safety)
+async function handleSignup(req, res) {
   try {
-    const { name, memberEmails = [] } = req.body || {};
-    const emails = Array.from(new Set([req.user.email, ...memberEmails])).map(e =>
-      String(e).toLowerCase().trim()
-    );
+    console.log("🟡 [BACKEND] Signup request received:", req.body);
 
-    const users = [];
-    for (const email of emails) {
-      let u = await User.findOne({ email });
-      if (!u) {
-        const passwordHash = await bcrypt.hash('dev-placeholder-password', 10); // ✅ satisfy schema
-        u = await User.create({
-          email,
-          fullname: email.split('@')[0],
-          passwordHash,
-        });
-      }
-      users.push(u);
+    const { name, emailAddress, password } = req.body;
+
+    if (!name || !emailAddress || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields.",
+      });
+    }
+
+    const normalizedEmail = emailAddress.toLowerCase().trim();
+
+    const exists = await User.findOne({ emailAddress: normalizedEmail });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered.",
+      });
+    }
+
+    const user = new User({
+      name: name.trim(),
+      emailAddress: normalizedEmail,
+      password,
+    });
+
+    await user.save();
+
+    console.log("🟢 [BACKEND] User created:", user._id);
+
+    // (Optional) auto-login new user:
+    // const token = signJwt(user);
+    // setAuthCookie(res, token);
+
+    return res.json({
+      success: true,
+      message: "Account created successfully.",
+      user: {
+        _id: user._id,
+        name: user.name,
+        emailAddress: user.emailAddress,
+      },
+    });
+  } catch (err) {
+    console.error("❌ [BACKEND] Signup error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      debug: err.message,
+    });
+  }
+}
+
+app.post("/api/signup", handleSignup);
+app.post("/signup", handleSignup); // in case frontend hits /signup
+
+// Signin (login)
+async function handleSignin(req, res) {
+  try {
+    const { emailAddress, password } = req.body;
+
+    if (!emailAddress || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing login fields.",
+      });
+    }
+
+    const normalizedEmail = emailAddress.toLowerCase().trim();
+
+    const user = await User.findOne({ emailAddress: normalizedEmail });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "No account found for this email.",
+      });
+    }
+
+    const match = await user.comparePassword(password);
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password.",
+      });
+    }
+
+    const token = signJwt(user);
+    setAuthCookie(res, token);
+
+    return res.json({
+      success: true,
+      message: "Login successful!",
+      user: {
+        _id: user._id,
+        name: user.name,
+        emailAddress: user.emailAddress,
+      },
+    });
+  } catch (err) {
+    console.error("❌ [BACKEND] Login error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      debug: err.message,
+    });
+  }
+}
+
+app.post("/api/signin", handleSignin);
+app.post("/signin", handleSignin); // safety
+
+// Current user
+app.get("/api/auth/me", requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).lean();
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, error: "User not found" });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        emailAddress: user.emailAddress || user.email || null,
+      },
+    });
+  } catch (e) {
+    console.error("/api/auth/me error:", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Simple health check
+app.get("/health", (_req, res) => {
+  res.json({ ok: true, at: "backend", ts: new Date().toISOString() });
+});
+
+// ====================== CONVERSATIONS ==========================
+
+// Get all conversations for logged-in user
+app.get("/api/conversations", requireAuth, async (req, res) => {
+  try {
+    const convs = await Conversation.find({ members: req.user.id })
+      .select("_id name members updatedAt")
+      .populate("members", "name emailAddress")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    res.json({ success: true, data: convs });
+  } catch (e) {
+    console.error("/api/conversations error:", e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Get messages for a conversation
+app.get("/api/conversations/:id/messages", requireAuth, async (req, res) => {
+  try {
+    const convId = req.params.id;
+
+    const permitted = await Conversation.exists({
+      _id: convId,
+      members: req.user.id,
+    });
+
+    if (!permitted) {
+      return res
+        .status(403)
+        .json({ success: false, error: "Forbidden" });
+    }
+
+    const msgs = await Message.find({ conversation: convId })
+      .sort({ createdAt: 1 })
+      .lean();
+
+    res.json({ success: true, data: msgs });
+  } catch (e) {
+    console.error(
+      `/api/conversations/${req.params.id}/messages error:`,
+      e
+    );
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Create a conversation (used by "New" button)
+app.post("/api/dev/seed-conv", requireAuth, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      return res.json({
+        success: false,
+        error: "Conversation name required",
+      });
     }
 
     const conv = await Conversation.create({
-      name: name || 'New Conversation',
-      members: users.map(u => u._id),
-      lastMessageAt: new Date()
+      name: name.trim(),
+      members: [req.user.id],
+      lastMessageAt: new Date(),
     });
 
     res.json({ success: true, data: conv });
   } catch (e) {
-    console.error('seed-conv error:', e);
-    res.status(500).json({ success: false, error: e.message || 'internal error' });
+    console.error("/api/dev/seed-conv error:", e);
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
-app.post('/api/conversations/:id/add-member', requireAuth, async (req, res) => {
+// Add member to conversation by email
+app.post("/api/conversations/:id/add-member", requireAuth, async (req, res) => {
   try {
-    const { email } = req.body || {};
-    if (!email) {
-      return res.status(400).json({ success: false, error: 'email required' });
-    }
-
-    const normalized = String(email).toLowerCase().trim();
-
-    // Only a member of the conversation can add others
     const conv = await Conversation.findOne({
       _id: req.params.id,
       members: req.user.id,
     });
 
     if (!conv) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
+      return res
+        .status(404)
+        .json({ success: false, error: "Conversation not found" });
     }
 
-    let user = await User.findOne({ email: normalized });
+    const rawEmail = req.body.email;
+    if (!rawEmail) {
+      return res
+        .status(400)
+        .json({ success: false, error: "email required" });
+    }
 
-    // If user doesn't exist yet, create one with a dev placeholder password
+    const emailAddress = String(rawEmail).toLowerCase().trim();
+
+    let user = await User.findOne({ emailAddress });
     if (!user) {
-      const passwordHash = await bcrypt.hash('dev-placeholder-password', 10);
+      // Create a placeholder account for this invited user
+      const tempPassword = await bcrypt.hash(
+        "dev-placeholder-password",
+        10
+      );
       user = await User.create({
-        email: normalized,
-        fullname: normalized.split('@')[0],
-        passwordHash,
+        name: emailAddress.split("@")[0],
+        emailAddress,
+        password: tempPassword, // already hashed, but our pre-save will hash again; it's dev-only so fine
       });
     }
 
-    // Add to conversation members if not already present
-    if (!conv.members.some((m) => m.toString() === user._id.toString())) {
+    if (!conv.members.some((m) => String(m) === String(user._id))) {
       conv.members.push(user._id);
       await conv.save();
     }
 
-    await conv.populate('members', 'email fullname name');
+    await conv.populate("members", "name emailAddress");
 
-    res.json({
-      success: true,
-      data: conv,
-      // Helpful info for you while testing:
-      note: 'If this email did not have an account, it was created with password "dev-placeholder-password".',
-    });
+    res.json({ success: true, data: conv });
   } catch (e) {
-    console.error('add-member error:', e);
-    res.status(500).json({ success: false, error: e.message || 'internal error' });
+    console.error("/api/conversations/:id/add-member error:", e);
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
+// ====================== SOCKET.IO ==========================
 
+const io = new Server(server, {
+  cors: {
+    origin: ALLOWED_ORIGINS,
+    credentials: true,
+  },
+  pingTimeout: 20000,
+});
 
-
-
-// ====================== SOCKET.IO ======================= //
-// Authenticate socket connection
-
-
+// Socket auth using cp_jwt cookie
 io.use((socket, next) => {
   try {
-    const parsed = cookie.parse(socket.handshake.headers?.cookie || '');
-    const tok = parsed.cp_jwt;
-    //console.log(tok);
-    if (!tok) return next(new Error('Unauthorized'));
-    const payload = jwt.verify(tok, process.env.JWT_SECRET);
-    socket.user = { _id: payload.id, name: payload.name };
+    const parsed = cookie.parse(socket.handshake.headers.cookie || "");
+    const token = parsed.cp_jwt;
+    if (!token) return next(new Error("Unauthorized"));
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = { id: decoded.id };
     next();
-  } catch {
-    next(new Error('Unauthorized'));
+  } catch (e) {
+    console.error("Socket auth error:", e.message);
+    next(new Error("Unauthorized"));
   }
 });
 
-io.on('connection', (socket) => {
-  console.log('Socket connected!', socket.id);
-});
-
-io.on('connect_error', (err) => {
-  console.log('Connection error:', err);
-});
-
-const rooms = {};
-io.on('connection', (socket) => {
-  const userId = socket.user._id;
-  console.log("Connection MADE");
-  //New routes for interview part
-  socket.on("nextQuestion",({roomId,question}) =>
-  {
-    console.log("NEW QUESTION ASKED");
-    if(rooms[roomId] && rooms[roomId].interviewerId == userId)
-      {
-        rooms[roomId].currentQuestion = question;
-        io.to(roomId).emit("newQuestion", {question});
-        console.log("NEW QUESTION SENT: "+question);
-      }
-      io.to(roomId).emit("ask_next_question", { question });
-  });
-
-  socket.on("connect_error", (err) => {
-    console.log("Socket connection error:", err.message);
-  });
-
-  socket.on("joinRoom", ({roomId,role}) => {
-    if(!rooms[roomId])
-    {
-      rooms[roomId] = {messages:[],currentQuestion:null,interviewerId:null,intervieweeId:null};
-    }
-
-    if(role == "interviewer")
-    {
-      rooms[roomId].interviewerId = userId;
-    }
-
-    if(role == "interviewee")
-    {
-      rooms[roomId].intervieweeId = userId;
-    }
-    socket.join(roomId);
-    console.log("USER JOINED ROOM: "+roomId+" AS "+role);
-  });
-
-
-
-  socket.on("endInterview", ({roomId}) => {
-    io.to(roomId).emit("interviewEnded", {});
-    delete rooms[roomId];
-    console.log("ROOM HAS BEEN DELETED");
-  })
+io.on("connection", (socket) => {
+  console.log("🟢 Socket connected:", socket.id);
 
   // Join a conversation room
-  socket.on('conversation:join', async ({ conversationId }) => {
-    const member = await Conversation.exists({ _id: conversationId, members: userId });
-    if (member) socket.join(`conv:${conversationId}`);
+  socket.on("conversation:join", ({ conversationId }) => {
+    if (!conversationId) return;
+    socket.join(`conv:${conversationId}`);
   });
 
-  // Send a message
-  socket.on('message:send', async ({ conversationId, text, attachments = [] }, ack) => {
-    try {
-      const member = await Conversation.exists({ _id: conversationId, members: userId });
-      if (!member) throw new Error('Forbidden');
+  // Send message
+  socket.on(
+    "message:send",
+    async ({ conversationId, text, tempId, attachments = [] }, ack) => {
+      try {
+        if (!conversationId || !text?.trim()) {
+          return ack?.({ ok: false, error: "Missing fields" });
+        }
 
-      const msg = await Message.create({
-        conversation: conversationId,
-        sender: userId,
-        text,
-        attachments
-      });
+        const msg = await Message.create({
+          conversation: conversationId,
+          sender: socket.user.id,
+          text: text.trim(),
+          attachments,
+        });
 
-      await Conversation.findByIdAndUpdate(conversationId, { lastMessageAt: new Date() });
+        await Conversation.findByIdAndUpdate(conversationId, {
+          lastMessageAt: new Date(),
+        });
 
-      io.to(`conv:${conversationId}`).emit('message:new', {
-        _id: msg._id.toString(),
-        conversation: conversationId,
-        sender: userId,
-        text,
-        attachments,
-        createdAt: msg.createdAt
-      });
+        io.to(`conv:${conversationId}`).emit("message:new", {
+          _id: msg._id,
+          conversation: conversationId,
+          sender: socket.user.id,
+          text: msg.text,
+          tempId,
+          createdAt: msg.createdAt,
+        });
 
-      ack?.({ ok: true, messageId: msg._id.toString() });
-    } catch (e) {
-      ack?.({ ok: false, error: e.message });
+        ack?.({ ok: true, messageId: msg._id.toString() });
+      } catch (e) {
+        console.error("message:send error:", e);
+        ack?.({ ok: false, error: e.message });
+      }
     }
-  });
+  );
 
-  // Typing indicator
-  socket.on('typing', ({ conversationId, isTyping }) => {
-    socket.to(`conv:${conversationId}`).emit('typing', { userId, isTyping, conversationId });
+  socket.on("disconnect", () => {
+    console.log("🔴 Socket disconnected:", socket.id);
   });
+});
+
+// ====================== START SERVER ==========================
+
+server.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

@@ -54,7 +54,7 @@ export default function Login() {
         passwordLength: loginData.password.length
       });
 
-      const result = await authAPI.signin(loginData);
+      const result = await authAPI.login(loginData);
 
       console.log("🔵 [LOGIN FRONTEND] Response received:");
       console.log("🔵 [LOGIN FRONTEND] - Status:", result.status);

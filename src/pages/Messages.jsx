@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import LoggedInNavbar from "../components/nav/LoggedInNavBar";
+// src/pages/Messages.jsx
+import React, { useEffect, useState, useRef } from "react";
+import LoggedInNavbar from "../components/nav/LoggedInNavbar";
 import Footer from "../components/Footer";
 import {
   BACKGROUND_COLOR,
@@ -8,381 +9,518 @@ import {
   ACCENT_GRADIENT,
   GridOverlay,
 } from "../utils/constants";
-
 import { initSocket, getSocket } from "../socket";
 
-const API = "http://localhost:3000";
+const API_BASE = "http://localhost:3000";
 
 export default function Messages() {
   const [conversations, setConversations] = useState([]);
-  const [active, setActive] = useState(null);
-  const [messages, setMessages] = useState({});
-  const [draft, setDraft] = useState("");
+  const [activeId, setActiveId] = useState(null);
 
-  const [me, setMe] = useState(null);
+  const [messagesByConv, setMessagesByConv] = useState({});
+  const [messageInput, setMessageInput] = useState("");
 
-  const [newModal, setNewModal] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  const [loadingConvos, setLoadingConvos] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState("");
+
+  // Modals
+  const [isNewOpen, setIsNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newMemberEmail, setNewMemberEmail] = useState("");
 
-  const [addModal, setAddModal] = useState(false);
-  const [addEmail, setAddEmail] = useState("");
+  const bottomRef = useRef(null);
 
-  // -------------------- LOAD USER --------------------
+  const activeConv = conversations.find((c) => c.id === activeId) || null;
+  const messages = activeId ? messagesByConv[activeId] || [] : [];
+
+  // =====================================================
+  // 1. LOAD CURRENT USER + INIT SOCKET
+  // =====================================================
   useEffect(() => {
-    async function loadMe() {
+    async function fetchMe() {
       try {
-        const res = await fetch(`${API}/api/auth/me`, {
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
           credentials: "include",
         });
         const data = await res.json();
-        if (data.success) setMe(data.data);
-      } catch (e) {
-        console.log("auth/me error:", e);
+        console.log("🟩 /api/auth/me:", data);
+
+        const id =
+          data.data?._id || data.user?._id || data?.user?.id || null;
+
+        if (id) {
+          setCurrentUserId(String(id));
+        }
+      } catch (err) {
+        console.error("fetchMe error:", err);
       }
     }
 
-    loadMe();
+    fetchMe();
+
+    // initialize socket once
+    if (!getSocket()) initSocket();
   }, []);
 
-  // -------------------- LOAD CONVERSATIONS --------------------
+  // =====================================================
+  // 2. LOAD CONVERSATIONS
+  // =====================================================
   useEffect(() => {
-    async function loadConvs() {
+    async function loadConvos() {
+      setLoadingConvos(true);
+      setError("");
+
       try {
-        const res = await fetch(`${API}/api/conversations`, {
+        const res = await fetch(`${API_BASE}/api/conversations`, {
           credentials: "include",
         });
         const data = await res.json();
+        console.log("🟦 /api/conversations:", data);
 
-        if (!data.success) return;
-
-        const formatted = data.data.map((c) => ({
-          id: c._id,
-          name: c.name,
-          members: c.members,
-        }));
-
-        setConversations(formatted);
-
-        if (formatted.length > 0) setActive(formatted[0].id);
-      } catch (e) {
-        console.error("Conversation load error:", e);
-      }
-    }
-
-    loadConvs();
-  }, []);
-
-  // -------------------- LOAD MESSAGES FOR ACTIVE --------------------
-  useEffect(() => {
-    if (!active) return;
-
-    async function loadMsgs() {
-      try {
-        const res = await fetch(`${API}/api/conversations/${active}/messages`, {
-          credentials: "include",
-        });
-
-        const data = await res.json();
-        if (!data.success) return;
-
-        setMessages((prev) => ({
-          ...prev,
-          [active]: data.data,
-        }));
-
-        let socket = getSocket();
-        if (!socket) {
-          initSocket();
-          socket = getSocket();
+        if (!data.success) {
+          setError(data.error || "Failed to load conversations.");
+          setConversations([]);
+          return;
         }
 
-        socket.emit("conversation:join", { conversationId: active });
-      } catch (e) {
-        console.error("message load error:", e);
+        const convs = (data.data || []).map((c) => ({
+          id: c._id,
+          name: c.name || "Conversation",
+          members: c.members || [],
+          last: "",
+        }));
+
+        setConversations(convs);
+
+        if (convs.length > 0 && !activeId) {
+          setActiveId(convs[0].id);
+        }
+      } catch (err) {
+        console.error("loadConvos error:", err);
+        setError("Failed to load conversations.");
+      } finally {
+        setLoadingConvos(false);
       }
     }
 
-    loadMsgs();
-  }, [active]);
-
-  // -------------------- SOCKET HANDLER --------------------
-  useEffect(() => {
-    let socket = getSocket();
-    if (!socket) {
-      initSocket();
-      socket = getSocket();
-    }
-
-    socket.on("message:new", (msg) => {
-      const convId = msg.conversation;
-
-      setMessages((prev) => {
-        const existing = prev[convId] || [];
-        return {
-          ...prev,
-          [convId]: [...existing, msg],
-        };
-      });
-    });
-
-    return () => socket.off("message:new");
+    loadConvos();
   }, []);
 
-  // -------------------- SEND MESSAGE --------------------
+  // =====================================================
+  // 3. LOAD MESSAGES WHEN ACTIVE CHAT CHANGES
+  // =====================================================
+  useEffect(() => {
+    if (!activeId || !currentUserId) return;
+
+    async function loadMessages() {
+      setLoadingMessages(true);
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/conversations/${activeId}/messages`,
+          { credentials: "include" }
+        );
+        const data = await res.json();
+        console.log("🟧 /messages:", data);
+
+        if (!data.success) return;
+
+        const mapped = (data.data || []).map((m) => {
+          const senderId = m.sender?._id || m.sender;
+          return {
+            id: m._id,
+            text: m.text,
+            sender: senderId,
+            fromSelf: String(senderId) === String(currentUserId),
+          };
+        });
+
+        setMessagesByConv((prev) => ({
+          ...prev,
+          [activeId]: mapped,
+        }));
+
+        setTimeout(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      } catch (err) {
+        console.error("loadMessages error:", err);
+      } finally {
+        setLoadingMessages(false);
+      }
+    }
+
+    loadMessages();
+
+    const s = getSocket();
+    s.emit("conversation:join", { conversationId: activeId });
+  }, [activeId, currentUserId]);
+
+  // =====================================================
+  // 4. SOCKET LISTENER FOR REAL-TIME MESSAGES
+  // =====================================================
+  useEffect(() => {
+    if (!currentUserId) return; // ⛔ wait until user is loaded
+
+    const s = getSocket();
+    if (!s) return;
+
+    const handler = (msg) => {
+      if (!msg) return;
+
+      console.log("🟪 message:new:", msg);
+
+      const convId = msg.conversation;
+      const senderId = msg.sender;
+      const fromSelf = String(senderId) === String(currentUserId);
+
+      const mapped = {
+        id: msg._id,
+        text: msg.text,
+        sender: senderId,
+        fromSelf,
+      };
+
+      setMessagesByConv((prev) => {
+        const existing = prev[convId] || [];
+
+        // ⛔ prevent duplicates
+        if (existing.some((m) => m.id === mapped.id)) return prev;
+
+        return {
+          ...prev,
+          [convId]: [...existing, mapped],
+        };
+      });
+
+      // update last message in sidebar
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === convId ? { ...c, last: msg.text } : c
+        )
+      );
+
+      if (convId === activeId) {
+        setTimeout(() => {
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 50);
+      }
+    };
+
+    s.on("message:new", handler);
+
+    return () => {
+      s.off("message:new", handler);
+    };
+  }, [currentUserId, activeId]);
+
+  // =====================================================
+  // 5. SEND MESSAGE (ONLY EMIT — NO LOCAL DUPLICATE)
+  // =====================================================
   const sendMessage = (e) => {
     e.preventDefault();
-    if (!draft.trim() || !me || !active) return;
 
-    const text = draft.trim();
+    const text = messageInput.trim();
+    if (!text || !activeId) return;
 
-    let socket = getSocket();
-    if (!socket) return;
+    const s = getSocket();
+    s.emit("message:send", {
+      conversationId: activeId,
+      text,
+    });
 
-    socket.emit(
-      "message:send",
-      {
-        conversationId: active,
-        text,
-        tempId: `temp-${Date.now()}`,
-      },
-      (ack) => {
-        if (!ack?.ok) console.error("Message send failed:", ack);
-      }
-    );
-
-    setDraft("");
+    setMessageInput("");
   };
 
-  // -------------------- CREATE CONVERSATION --------------------
+  // =====================================================
+  // 6. CREATE NEW CHAT
+  // =====================================================
+  const openNewModal = () => {
+    setNewName("");
+    setIsNewOpen(true);
+  };
+
   const createConversation = async (e) => {
     e.preventDefault();
+
     if (!newName.trim()) return;
 
-    const res = await fetch(`${API}/api/dev/seed-conv`, {
+    const res = await fetch(`${API_BASE}/api/dev/seed-conv`, {
       method: "POST",
-      credentials: "include",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ name: newName.trim() }),
     });
 
     const data = await res.json();
-
-    if (!data.success) return;
-
-    const conv = data.data;
-
-    setConversations((prev) => [
-      {
-        id: conv._id,
-        name: conv.name,
-        members: conv.members || [],
-      },
-      ...prev,
-    ]);
-
-    setMessages((prev) => ({
-      ...prev,
-      [conv._id]: [],
-    }));
-
-    setActive(conv._id);
-    setNewModal(false);
-  };
-
-  // -------------------- ADD MEMBER --------------------
-  const addMember = async (e) => {
-    e.preventDefault();
-    if (!addEmail.trim() || !active) return;
-
-    const res = await fetch(`${API}/api/conversations/${active}/add-member`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email: addEmail.trim() }),
-    });
-
-    const data = await res.json();
+    console.log("🟦 seed-conv response:", data);
 
     if (!data.success) {
-      console.error("Add member error:", data);
+      alert("Failed to create chat");
       return;
     }
 
-    const conv = data.data;
+    const conv = {
+      id: data.data._id,
+      name: data.data.name,
+      members: data.data.members,
+      last: "",
+    };
+
+    setConversations((prev) => [conv, ...prev]);
+    setMessagesByConv((prev) => ({ ...prev, [conv.id]: [] }));
+    setActiveId(conv.id);
+    setIsNewOpen(false);
+  };
+
+  // =====================================================
+  // 7. ADD MEMBER
+  // =====================================================
+  const openAddMemberModal = () => {
+    if (!activeConv) return;
+    setNewMemberEmail("");
+    setIsAddOpen(true);
+  };
+
+  const addMember = async (e) => {
+    e.preventDefault();
+    const email = newMemberEmail.trim();
+    if (!email || !activeConv) return;
+
+    const res = await fetch(
+      `${API_BASE}/api/conversations/${activeConv.id}/add-member`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      }
+    );
+
+    const data = await res.json();
+    console.log("🟩 add-member response:", data);
+
+    if (!data.success) {
+      alert("Failed");
+      return;
+    }
+
+    const updatedMembers = data.data.members || [];
 
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === active
-          ? {
-              ...c,
-              members: conv.members,
-            }
+        c.id === activeConv.id
+          ? { ...c, members: updatedMembers }
           : c
       )
     );
 
-    setAddModal(false);
+    setIsAddOpen(false);
   };
 
-  const activeConv = conversations.find((c) => c.id === active);
-  const msgs = active ? messages[active] || [] : [];
+  // label for members
+  const membersLabel =
+    activeConv && activeConv.members?.length
+      ? activeConv.members
+          .map(
+            (m) =>
+              m.fullname || m.name || m.email || "Unknown"
+          )
+          .join(", ")
+      : "Unknown";
 
-  // -------------------- UI STARTS HERE --------------------
+  // =====================================================
+  // UI RENDER
+  // =====================================================
   return (
-    <div className={`min-h-screen ${BACKGROUND_COLOR} text-white relative`}>
+    <div
+      className={`min-h-screen ${BACKGROUND_COLOR} text-white relative overflow-hidden font-quicksand flex flex-col`}
+    >
       <GridOverlay />
       <LoggedInNavbar />
 
-      <main className="max-w-7xl mx-auto px-6 pt-10 pb-20">
-        <h1 className="text-3xl font-audiowide tracking-wide mb-6 text-center">
-          Messages
-        </h1>
+      <section className="relative mb-6">
+        <div className="relative max-w-7xl mx-auto px-6 pt-10 pb-4 text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight font-audiowide">
+            Messages
+          </h1>
+        </div>
+      </section>
 
-        <div className="grid grid-cols-12 gap-6">
+      <main className="max-w-7xl mx-auto w-full px-6 pb-10 flex-1 flex flex-col">
+        {error && (
+          <p className="text-center text-xs text-red-400 mb-2">{error}</p>
+        )}
+
+        <div className="flex flex-1 gap-6">
           {/* LEFT SIDEBAR */}
           <aside
-            className={`col-span-12 md:col-span-4 lg:col-span-3 rounded-xl p-4 border ${BORDER_COLOR} ${FEATURE_BG}`}
+            className={`w-64 ${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl p-4 flex flex-col`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-lg">Chats</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-sm">Chats</h2>
               <button
-                onClick={() => setNewModal(true)}
-                className={`px-3 py-1 text-sm rounded-md ${ACCENT_GRADIENT}`}
+                onClick={openNewModal}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold ${ACCENT_GRADIENT} shadow`}
               >
                 New
               </button>
             </div>
 
-            {conversations.length === 0 ? (
-              <p className="text-gray-400 text-sm">
-                No chats. Create one above.
-              </p>
+            {loadingConvos ? (
+              <p className="text-xs text-gray-400">Loading…</p>
+            ) : conversations.length === 0 ? (
+              <p className="text-xs text-gray-400">No chats. Create one.</p>
             ) : (
-              <ul className="space-y-2">
+              <div className="space-y-2 overflow-y-auto">
                 {conversations.map((c) => (
-                  <li key={c.id}>
-                    <button
-                      className={`w-full text-left rounded-lg px-3 py-2 border ${
-                        active === c.id
-                          ? "border-cyan-400 bg-cyan-500/10"
-                          : `${BORDER_COLOR} hover:border-cyan-400`
-                      }`}
-                      onClick={() => setActive(c.id)}
-                    >
-                      <div className="font-medium">{c.name}</div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {c.members?.length || 0} members
-                      </div>
-                    </button>
-                  </li>
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveId(c.id)}
+                    className={`w-full text-left rounded-xl px-3 py-2 border text-sm ${
+                      activeId === c.id
+                        ? "bg-cyan-500/20 border-cyan-400"
+                        : `${BORDER_COLOR} border hover:border-cyan-400/60`
+                    }`}
+                  >
+                    <div className="font-medium truncate">{c.name}</div>
+                    <div className="text-[11px] text-gray-400">
+                      {(c.members || []).length} members
+                    </div>
+                  </button>
                 ))}
-              </ul>
+              </div>
             )}
           </aside>
 
-          {/* CHAT WINDOW */}
+          {/* MAIN CHAT PANEL */}
           <section
-            className={`col-span-12 md:col-span-8 lg:col-span-9 rounded-xl p-4 border ${BORDER_COLOR} ${FEATURE_BG}`}
+            className={`${FEATURE_BG} ${BORDER_COLOR} border rounded-2xl flex-1 flex flex-col p-4`}
           >
-            {!activeConv ? (
-              <p className="text-gray-400 text-center mt-20">
-                Select a chat to start messaging.
-              </p>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="font-semibold text-lg">{activeConv.name}</h2>
-                    <p className="text-xs text-gray-400">
-                      Members:{" "}
-                      {activeConv.members
-                        .map((m) => m.fullname || m.email || "Unknown")
-                        .join(", ")}
-                    </p>
-                  </div>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-sm font-semibold">
+                  {activeConv ? activeConv.name : "Select a chat"}
+                </h2>
+                {activeConv && (
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Members: {membersLabel}
+                  </p>
+                )}
+              </div>
 
-                  <button
-                    onClick={() => setAddModal(true)}
-                    className={`px-3 py-1 rounded-md text-sm ${ACCENT_GRADIENT}`}
+              <button
+                type="button"
+                disabled={!activeConv}
+                onClick={openAddMemberModal}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold ${ACCENT_GRADIENT} shadow ${
+                  !activeConv ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              >
+                Add Member
+              </button>
+            </div>
+
+            {/* MESSAGE AREA */}
+            <div
+              className={`flex-1 rounded-xl ${BACKGROUND_COLOR} ${BORDER_COLOR} border px-3 py-3 overflow-y-auto space-y-3`}
+            >
+              {!activeConv ? (
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  Select a chat.
+                </p>
+              ) : loadingMessages ? (
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  Loading messages…
+                </p>
+              ) : messages.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  No messages yet.
+                </p>
+              ) : (
+                messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`flex ${
+                      m.fromSelf ? "justify-end" : "justify-start"
+                    }`}
                   >
-                    Add Member
-                  </button>
-                </div>
-
-                {/* MESSAGES */}
-                <div
-                  className={`h-[55vh] overflow-y-auto rounded-xl p-3 border ${BORDER_COLOR} ${BACKGROUND_COLOR} space-y-3`}
-                >
-                  {msgs.map((m) => (
                     <div
-                      key={m._id}
-                      className={`flex ${
-                        me && m.sender === me._id
-                          ? "justify-end"
-                          : "justify-start"
+                      className={`max-w-[70%] px-3 py-1.5 rounded-lg text-xs border ${
+                        m.fromSelf
+                          ? "bg-blue-600 border-blue-500"
+                          : `${FEATURE_BG} ${BORDER_COLOR}`
                       }`}
                     >
-                      <div
-                        className={`px-3 py-2 rounded-lg max-w-[70%] border ${
-                          me && m.sender === me._id
-                            ? "bg-blue-600 border-blue-500"
-                            : `${FEATURE_BG} ${BORDER_COLOR}`
-                        }`}
-                      >
-                        {m.text}
-                      </div>
+                      {m.text}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
+              )}
 
-                {/* INPUT */}
-                <form onSubmit={sendMessage} className="flex gap-2 mt-4">
-                  <input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    className={`flex-1 px-3 py-2 rounded-lg border ${BORDER_COLOR} ${BACKGROUND_COLOR}`}
-                    placeholder="Type a message..."
-                  />
-                  <button
-                    type="submit"
-                    className={`px-4 py-2 rounded-lg ${ACCENT_GRADIENT}`}
-                  >
-                    Send
-                  </button>
-                </form>
-              </>
-            )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* INPUT */}
+            <form onSubmit={sendMessage} className="mt-3 flex items-center gap-3">
+              <input
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                disabled={!activeConv}
+                placeholder={
+                  activeConv ? "Type a message…" : "Select a chat first"
+                }
+                className={`flex-1 rounded-lg px-3 py-2 text-xs ${BACKGROUND_COLOR} ${BORDER_COLOR} border ${
+                  !activeConv ? "opacity-60" : ""
+                }`}
+              />
+              <button
+                type="submit"
+                disabled={!activeConv || !messageInput.trim()}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold ${ACCENT_GRADIENT} shadow ${
+                  !activeConv || !messageInput.trim()
+                    ? "opacity-60 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                Send
+              </button>
+            </form>
           </section>
         </div>
+
+        <Footer />
       </main>
 
-      <Footer />
-
-      {/* MODAL: NEW CHAT */}
-      {newModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-20">
+      {/* NEW CHAT MODAL */}
+      {isNewOpen && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
           <div
-            className={`p-6 rounded-xl border ${BORDER_COLOR} ${FEATURE_BG} w-full max-w-md`}
+            className={`w-full max-w-sm rounded-2xl p-6 ${FEATURE_BG} ${BORDER_COLOR} border`}
           >
-            <h3 className="font-semibold text-lg mb-3">New Conversation</h3>
+            <h3 className="text-sm font-semibold mb-3">Start a New Chat</h3>
             <form onSubmit={createConversation} className="space-y-4">
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border ${BORDER_COLOR} ${BACKGROUND_COLOR}`}
-                placeholder="Conversation name..."
+                placeholder="Conversation name"
+                className={`w-full rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
               />
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 text-xs">
                 <button
                   type="button"
-                  onClick={() => setNewModal(false)}
-                  className="px-3 py-1 border rounded-md"
+                  onClick={() => setIsNewOpen(false)}
+                  className={`${BORDER_COLOR} border rounded-lg px-3 py-1`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-3 py-1 rounded-md ${ACCENT_GRADIENT}`}
+                  className={`${ACCENT_GRADIENT} rounded-lg px-3 py-1 font-semibold`}
                 >
                   Create
                 </button>
@@ -392,34 +530,33 @@ export default function Messages() {
         </div>
       )}
 
-      {/* MODAL: ADD MEMBER */}
-      {addModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-20">
+      {/* ADD MEMBER MODAL */}
+      {isAddOpen && activeConv && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
           <div
-            className={`p-6 rounded-xl border ${BORDER_COLOR} ${FEATURE_BG} w-full max-w-md`}
+            className={`w-full max-w-sm rounded-2xl p-6 ${FEATURE_BG} ${BORDER_COLOR} border`}
           >
-            <h3 className="font-semibold text-lg mb-3">Add Member</h3>
-            <p className="text-sm text-gray-400 mb-3">
-              Enter the member's email:
-            </p>
+            <h3 className="text-sm font-semibold mb-2">
+              Add Member to {activeConv.name}
+            </h3>
             <form onSubmit={addMember} className="space-y-4">
               <input
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border ${BORDER_COLOR} ${BACKGROUND_COLOR}`}
-                placeholder="email@example.com"
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+                placeholder="member@example.com"
+                className={`w-full rounded-lg px-3 py-2 text-sm ${BACKGROUND_COLOR} ${BORDER_COLOR} border`}
               />
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 text-xs">
                 <button
                   type="button"
-                  onClick={() => setAddModal(false)}
-                  className="px-3 py-1 border rounded-md"
+                  onClick={() => setIsAddOpen(false)}
+                  className={`${BORDER_COLOR} border rounded-lg px-3 py-1`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-3 py-1 rounded-md ${ACCENT_GRADIENT}`}
+                  className={`${ACCENT_GRADIENT} rounded-lg px-3 py-1 font-semibold`}
                 >
                   Add
                 </button>

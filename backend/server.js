@@ -5,7 +5,7 @@ const cors = require("cors");
 const session = require("express-session");
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
-
+const { BedrockAgentRuntimeClient, RetrieveAndGenerateCommand } = require("@aws-sdk/client-bedrock-agent-runtime");
 const http = require("http");            
 const { Server } = require("socket.io");     
 const cookie = require("cookie");              
@@ -365,3 +365,52 @@ io.on('connection', (socket) => {
     socket.to(`conv:${conversationId}`).emit('typing', { userId, isTyping, conversationId });
   });
 });
+
+
+//AWS Stuff
+
+const bedrockClient = new BedrockAgentRuntimeClient({
+  region: "us-east-2",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+})
+
+const knowledgeBaseId = "ZCUR9ZUVO9"
+const modelARN = "arn:aws:bedrock:us-east-2:898919247843:default-prompt-router/anthropic.claude:1";
+
+app.get('/chat2', async (req,res) => {
+  const { message } = req.query;
+  console.log("ROUTE HIT WITH MESSAGE!");
+  try{
+
+    const command = new RetrieveAndGenerateCommand({
+      input: { 
+        text: (message+": Keep all answers concise")
+      },
+      retrieveAndGenerateConfiguration: {
+        type: "KNOWLEDGE_BASE",
+        knowledgeBaseConfiguration: {
+          knowledgeBaseId: knowledgeBaseId,
+          modelArn: modelARN
+        }
+      }
+    });
+
+    const response = await bedrockClient.send(command);
+
+    const answer = response.output.text;
+    const citations = response.retrievedItems || [];
+    console.log(citations);
+    //console.log('Generated answer:', answer);
+
+    res.json({ answer:answer});
+  }
+  catch(error)
+  {
+    console.error("Error during Bedrock chat:", error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+  );

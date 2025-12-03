@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/acm-projects/CodePact#readme",
   "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.943.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
